@@ -20,5 +20,5 @@ pub fn run_cli_token(fs_r: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: Lis
         margs = list_push(margs, list_get(args, i));
         i = i + 1;
     }
-    return spawn(fs_r, env, sys, "ooda-tui", margs);
+    return spawn(fs_r, env, sys, "tui", margs);
 }
