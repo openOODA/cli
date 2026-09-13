@@ -85,24 +85,31 @@ jobs:
         run: |
           set -e
           export OODA_COMPILER="$HOME/.openooda/bin/oodac"
-          for f in $(find . -name "*.oo" -not -path "./qa/*"); do
-            echo "checking $f"
-            "$OODA_COMPILER" check "$f" || true
-          done
-          echo "PASS: oodac check complete (warnings allowed)"
+          export OODA_FS_READDIR="$HOME/.openooda:${GITHUB_WORKSPACE}"
+          export OODA_FS_WRITEDIR="${GITHUB_WORKSPACE}"
+          export OODA_NO_JAIL=1
+          "$OODA_COMPILER" check main.oo
+          echo "PASS: oodac check main.oo"
 
       - name: Build
         run: |
-          set -e
+          set -euo pipefail
           export OODA_COMPILER="$HOME/.openooda/bin/oodac"
-          ooda build main.oo -o dist/cli
+          export OODA_FS_READDIR="$HOME/.openooda:${GITHUB_WORKSPACE}"
+          export OODA_FS_WRITEDIR="${GITHUB_WORKSPACE}"
+          export OODA_NO_JAIL=1
+          mkdir -p dist
+          "$OODA_COMPILER" build --backend c main.oo -o dist/cli-linux-x86_64
+          chmod +x dist/cli-linux-x86_64
+          cp -a dist/cli-linux-x86_64 dist/cli
+          (cd dist && sha256sum cli-linux-x86_64 > cli-linux-x86_64.sha256)
           ls -la dist/
 
       - name: Smoke test (--help, --version, unknown verb)
         run: |
           set -e
           ./dist/cli --help
-          ./dist/cli --version
+          ./dist/cli version
           ./dist/cli unknown-verb 2>/dev/null || test $? -eq 2
 
       - name: Binary parity (rules.oot §1.10)
@@ -122,7 +129,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cli
-          path: dist/cli
+          path: |
+            dist/cli-linux-x86_64
+            dist/cli-linux-x86_64.sha256
 
   release:
     needs: build
@@ -157,4 +166,6 @@ jobs:
           body: |
             Auto-release per rules.oot §1.24.
             PATCH bump on every push to main.
-          files: dist/cli
+          files: |
+            dist/cli-linux-x86_64
+            dist/cli-linux-x86_64.sha256

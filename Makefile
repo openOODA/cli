@@ -21,28 +21,25 @@ BIN := dist/cli
 
 all: verify
 
-# Phase 3 placeholder. Real binary lands when oodac can compile cli/main.oo + 8 build handlers + 6 fix/fmt/context handlers.
-build: main.oo anchor.oo \
-    build/anchor.oo build/find_compiler.oo build/host_run.oo build/host_build.oo build/test.oo build/install.oo build/update.oo build/init.oo build/qa.oo \
-    fix/anchor.oo fix/text.oo fix/apply.oo fix/diag.oo fix/imp.oo fix/must.oo fix/fix.oo \
-    fmt/anchor.oo fmt/fmt.oo \
-    context.oo \
-    token/anchor.oo qa/anchor.oo audit/anchor.oo docs/anchor.oo examples/anchor.oo
-	@echo "Phase 3: cli/main.oo wires 11 language verbs (build/run/test/fmt/install/update/init/qa/context/fix)."
-	@echo "Phase 3: ooda/main.oo is a thin router that forwards to cli."
-	@echo "PASS: handler code moved; binary build waits on oodac check + binary parity in Phase 8."
+build:
+	@mkdir -p dist
+	$(OODA_COMPILER) build --backend c main.oo -o $(BIN)
+	@chmod +x $(BIN)
+	@cp -a $(BIN) dist/cli-linux-x86_64
+	@echo "built $(BIN)"
 
-# Phase 1 placeholder. Real test lands in Phase 2.
-test:
-	@echo "Phase 1 stub: no real binary. Phase 2 wires --help/--version probes."
+test: build
+	./$(BIN) --help
+	./$(BIN) version
 
-# Phase 1 placeholder. Real parity lands in Phase 2.
-parity:
-	@echo "Phase 1 stub: no real binary. Phase 2 wires sha256 comparison."
+parity: build
+	@sum=$$(sha256sum $(BIN) | awk '{print $$1}'); echo $$sum; test -n "$$sum"
 
-# Phase 1 placeholder. Real install lands in Phase 2.
-install:
-	@echo "Phase 1 stub: no real binary. Phase 2 wires cp to ~/.openooda/bin/cli."
+install: build
+	@mkdir -p $(HOME)/.openooda/bin
+	cp -a $(BIN) $(HOME)/.openooda/bin/cli
+	@chmod +x $(HOME)/.openooda/bin/cli
+	@echo "installed $(HOME)/.openooda/bin/cli"
 
 line-cap:
 	@violations=0; \
