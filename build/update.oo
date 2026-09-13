@@ -13,7 +13,10 @@
 import "std/fs/process/env.oo";
 
 fn update_canonical_url() -> String {
-    return "https://openooda.org/install.sh";
+    // GitHub raw: ooda's landlock jail often cannot resolve openooda.org
+    // (no /etc/resolv.conf in OODA_FS_READDIR). raw.githubusercontent.com
+    // is the same install.sh the website stub fetches.
+    return "https://raw.githubusercontent.com/openOODA/install/main/install.sh";
 }
 
 // update_mirror_url: GitHub raw fallback for `cli update`. The primary
@@ -128,12 +131,13 @@ fn update_fetch_script(args: List[String]) -> String {
     let primary: String = update_canonical_url();
     let mirror: String = update_mirror_url();
     return "set -o pipefail\n" +
-        "export HOME=\"${HOME:-~}\"\n" +
-        "if ! getent hosts openooda.org >/dev/null 2>&1; then\n" +
-        "  echo 'ERROR: cli update: child process has no DNS resolver for openooda.org'\n" +
-        "  echo 'Hint: download install.sh yourself and retry with --installer <path>:'\n" +
-        "  echo '  curl -O " + primary + "'\n" +
-        "  echo '  cli update --installer ./install.sh " + flags + "'\n" +
+        "HOME=$(getent passwd $(id -un) | cut -d: -f6)\n" +
+        "export HOME\n" +
+        "if ! getent hosts raw.githubusercontent.com >/dev/null 2>&1; then\n" +
+        "  echo 'ERROR: cli update: child process has no DNS (need /etc in OODA_FS_READDIR)'\n" +
+        "  echo 'Hint: from an unjailed shell run:'\n" +
+        "  echo '  curl -fsSL " + primary + " | bash -s -- --yes'\n" +
+        "  echo 'or: cli update --installer ./install.sh'\n" +
         "  exit 1\n" +
         "fi\n" +
         "TMP=$(mktemp) || exit 1\n" +
