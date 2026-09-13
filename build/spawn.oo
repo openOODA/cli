@@ -1,0 +1,117 @@
+// # External Tool Spawner
+//
+// Logline: Resolve binary path under OODACODEX/bin or ~/.openooda/bin and execute it.
+//
+// Setup: Requires OODACODEX or OODA_CODEX. A .oot file uses its parent dir. ProcessCap execs tool.
+//
+// Beats:
+//   1. Validate codex path and tool name. Reject slash and traversal.
+//   2. Prefer $codex/bin/<name>. Also try ooda-lsp/ooda-mcp and ~/.openooda/bin.
+//   3. Last resort: dirname(OODA_COMPILER|OODAC_BIN)/<alias> without a
+//      jail-gated exists check (the jail may not cover the toolchain dir;
+//      exec fails closed when absent).
+//   4. Spawn tool subprocess with inherited capabilities. Never PATH.
+
+import "std/fs/file/path.oo";
+import "std/fs/process/env.oo";
+import "std/fs/process/cmd.oo";
+
+pub fn spawn_codex_bin(codex: String, name: String) -> Result[String, String] {
+    if codex == "" { return Err("OODACODEX required"); }
+    if name == "" { return Err("empty spawn name"); }
+    if str_contains(name, "/") || str_contains(name, "..") {
+        return Err("rejected spawn name: " + name);
+    }
+    return Ok(codex + "/bin/" + name);
+}
+
+fn spawn_root(codex: String) -> String {
+    let base: String = path_basename(codex);
+    if str_index_of(base, ".") >= 0 { return path_parent(codex); }
+    return codex;
+}
+
+fn spawn_alias(name: String) -> String {
+    if name == "lsp" { return "ooda-lsp"; }
+    if name == "mcp" { return "ooda-mcp"; }
+    return "";
+}
+
+fn spawn_exist(fs: &FsReadCap, root: String, name: String) -> String {
+    if root == "" || name == "" { return ""; }
+    let p: String = root + "/bin/" + name;
+    if path_exists(fs, p) { return p; }
+    return "";
+}
+
+pub fn spawn_compiler_cand(compiler: String, name: String) -> String {
+    if name == "" || str_contains(name, "/") || str_contains(name, "..") { return ""; }
+    if compiler == "" { return ""; }
+    let cdir: String = path_parent(compiler);
+    if chars_len(cdir) == 0 { return ""; }
+    let mut want: String = spawn_alias(name);
+    if want == "" { want = name; }
+    return cdir + "/" + want;
+}
+
+fn spawn_resolve(fs: &FsReadCap, env: &EnvCap, name: String, codex: String) -> Result[String, String] {
+    if name == "" { return Err("empty spawn name"); }
+    if str_contains(name, "/") || str_contains(name, "..") {
+        return Err("rejected spawn name: " + name);
+    }
+    if chars_len(codex) > 0 {
+        let formed: String = codex + "/bin/" + name;
+        if path_exists(fs, formed) { return Ok(formed); }
+        let root: String = spawn_root(codex);
+        let mut cpath: String = spawn_exist(fs, root, name);
+        let alias0: String = spawn_alias(name);
+        if cpath == "" { cpath = spawn_exist(fs, root, alias0); }
+        if cpath != "" { return Ok(cpath); }
+    }
+    let hr: Result[String, String] = env_get(env, "HOME");
+    let home: String = match hr { Ok(s) => s, Err(_) => "" };
+    let alias: String = spawn_alias(name);
+    let mut path: String = spawn_exist(fs, home + "/.openooda", name);
+    if path == "" { path = spawn_exist(fs, home + "/.openooda", alias); }
+    if path == "" {
+        let cr2: Result[String, String] = env_get(env, "OODA_COMPILER");
+        let mut comp: String = match cr2 { Ok(s) => s, Err(_) => "" };
+        if comp == "" {
+            let cr3: Result[String, String] = env_get(env, "OODAC_BIN");
+            comp = match cr3 { Ok(s) => s, Err(_) => "" };
+        }
+        let cand: String = spawn_compiler_cand(comp, name);
+        if chars_len(cand) > 0 { return Ok(cand); }
+        return Err("missing binary: " + name);
+    }
+    return Ok(path);
+}
+
+pub fn spawn(fs: &FsReadCap, env: &EnvCap, sys: &ProcessCap, name: String, args: List[String]) -> Result[Int, String] {
+    let cr0: Result[String, String] = env_get(env, "OODA_CODEX");
+    let codex0: String = match cr0 { Ok(s) => s, Err(_) => "" };
+    let cr: Result[String, String] = env_get(env, "OODACODEX");
+    let codex: String = if chars_len(codex0) > 0 { codex0 } else { match cr { Ok(s) => s, Err(_) => "" } };
+    let br: Result[String, String] = spawn_resolve(fs, env, name, codex);
+    if br.is_err() {
+        let msg: String = match br { Ok(_) => "", Err(e) => e };
+        println("ERR\tspawn\t" + msg);
+        return Err(msg);
+    }
+    let path: String = match br { Ok(p) => p, Err(_) => "" };
+    let mut argv: List[String] = list_new();
+    let n: Int = list_len(args);
+    let mut i: Int = 0;
+    while i < n {
+        argv = list_push(argv, list_get(args, i));
+        i = i + 1;
+    }
+    let r: Result[Int, String] = sys_exec_wait(sys, path, argv);
+    if r.is_err() {
+        let why: String = match r { Ok(_) => "", Err(e) => e };
+        println("ERR\tspawn\t" + path + ": " + why);
+        return Err(path + ": " + why);
+    }
+    let code: Int = match r { Ok(c) => c, Err(_) => 1 };
+    return Ok(code);
+}

@@ -1,0 +1,19 @@
+// # openOODA CLI Fix Cluster — Anchor for Agents
+//
+// Logline: Front door for the text-patch and file-diagnostic command surface.
+//
+// Setup: Hosts fix + apply + diag + imp + must + text. fix.oo is the user-facing entry.
+//
+// Beats:
+//   1. fix.oo — entry point for `cli fix <file> --yes`. Drives the check-apply loop.
+//   2. Patch surface: apply, must, imp, text — apply text-level edits.
+//   3. Diagnostic classifier: diag.oo — map oodac check output to ec, etc, eparse, eimp, emust.
+//
+// Phase 1 placeholder. Phase 3 fills in the real handlers from ooda/fix/.
+
+import "fix.oo";
+import "apply.oo";
+import "must.oo";
+import "imp.oo";
+import "text.oo";
+import "diag.oo";

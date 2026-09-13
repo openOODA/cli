@@ -1,0 +1,140 @@
+// # openOODA CLI Driver — Argv Router
+//
+// Logline: Parse argv and dispatch to the 4 in-process subdirs. The 12 verbs replace the language surface of legacy ooda/main.oo.
+//
+// Setup: Pre-pass handles --help and --version before any validation. Errors fire BEFORE env validation so users get the right message.
+//
+// Beats:
+//   1. Pre-pass --help / --version (no env needed).
+//   2. Validate argv shape: unknown flag exits 2; missing arg exits 2.
+//   3. Read OODACODEX under EnvCap.
+//   4. Dispatch argv[0] to the matching handler. Phase 3 wires fix/fmt/context. Phase 5+ wires token.
+
+import "build/find_compiler.oo";
+import "build/host_build.oo";
+import "build/test.oo";
+import "build/install.oo";
+import "build/update.oo";
+import "build/init.oo";
+import "build/qa.oo";
+import "fix/fix.oo";
+import "fmt/fmt.oo";
+import "context.oo";
+import "token.oo";
+
+fn cli_version() -> String {
+    return "v0.1.0";
+}
+
+fn print_help() {
+    println("cli — openOODA language CLI driver");
+    println("usage: cli <subcommand> [args]");
+    println("");
+    println("subcommands:");
+    println("  build <file>      compile a .oo file with oodac");
+    println("  run <file>        compile and execute a .oo file");
+    println("  test <file>       build and run a .oo test");
+    println("  fmt <file>        reformat a .oo file in place");
+    println("  install [--to P]  install the cli pack to a prefix");
+    println("  update            self-update the toolchain from openooda.org");
+    println("  upgrade           alias of update");
+    println("  init [name]       scaffold a new project layout");
+    println("  qa [--all]        run the local qa suite");
+    println("  context [dir]     list .oo files under a directory");
+    println("  fix <file>        auto-fix common compile errors");
+    println("  token <sub>       LLM token telemetry (forwards to ooda-tui)");
+    println("  version           print cli version");
+    println("  help              print this message");
+}
+
+fn stub(name: String, args: List[String]) -> Result[Int, String] {
+    let n: Int = list_len(args);
+    println("cli " + name + ": stub (Phase 5+ wires the real handler)");
+    return Ok(0);
+}
+
+fn validate_argv(args: List[String]) -> Result[String, String] {
+    let n: Int = list_len(args);
+    if n < 1 {
+        print_help();
+        return Ok("showed-help");
+    }
+    let mut i: Int = 0;
+    while i < n {
+        let a: String = list_get(args, i);
+        if a == "--help" || a == "-h" {
+            print_help();
+            return Ok("showed-help");
+        }
+        if a == "--version" || a == "-v" {
+            println("cli " + cli_version());
+            return Ok("showed-version");
+        }
+        i = i + 1;
+    }
+    return Ok("validated");
+}
+
+pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap, env: &EnvCap, time: &TimeCap, fs_w: &FsWriteCap, alloc: &AllocCap, thread: &ThreadCap, args: List[String]) -> Result[Int, String] {
+    let _ = validate_argv(args);
+    let n: Int = list_len(args);
+    if n < 1 {
+        process_exit(2);
+        return Err("cli: missing subcommand");
+    }
+    let sub: String = list_get(args, 0);
+    let rest: List[String] = list_slice(args, 1, n);
+
+    if sub == "build"   { run_oodac_build(fs_r, fs_w, sys, env, rest); return Ok(0); }
+    if sub == "run"     { run_oodac_run(fs_r, fs_w, sys, env, rest); return Ok(0); }
+    if sub == "test" {
+        if list_len(rest) < 1 { println("cli test: missing file"); process_exit(2); return Ok(2); }
+        run_ooda_test(fs_r, fs_w, sys, env, time, rest);
+        return Ok(0);
+    }
+    if sub == "fmt" {
+        let rc: Int = run_ooda_fmt(fs_r, fs_w, alloc, rest);
+        return Ok(rc);
+    }
+    if sub == "install" { run_ooda_install_cmd(fs_r, sys, env, fs_w, rest); return Ok(0); }
+    if sub == "update" || sub == "upgrade" { run_ooda_update(fs_r, sys, env, rest); return Ok(0); }
+    if sub == "init" {
+        let name: String = if list_len(rest) > 0 { list_get(rest, 0) } else { "myproject"; }
+        let r: Result[String, String] = cli_init_project(fs_r, fs_w, name);
+        if r.is_err() {
+            let e: String = match r { Ok(_) => "", Err(m) => m };
+            return Err(e);
+        }
+        let msg: String = match r { Ok(m) => m, Err(_) => "" };
+        println(msg);
+        return Ok(0);
+    }
+    if sub == "qa" { run_ooda_qa(fs_r, fs_w, sys, env, time, rest); return Ok(0); }
+    if sub == "context" { run_ooda_context(fs_r, rest); return Ok(0); }
+    if sub == "fix" { run_ooda_fix(fs_r, fs_w, sys, env, rest); return Ok(0); }
+
+    if sub == "token" {
+        let r: Result[Int, String] = run_cli_token(fs_r, sys, env, rest);
+        if r.is_err() {
+            let e: String = match r { Ok(_) => "", Err(m) => m };
+            println("cli token: " + e);
+            process_exit(1);
+        }
+        let code: Int = match r { Ok(c) => c, Err(_) => 1 };
+        return Ok(code);
+    }
+
+    if sub == "version" || sub == "--version" || sub == "-v" {
+        println("cli " + cli_version());
+        return Ok(0);
+    }
+    if sub == "help" || sub == "--help" || sub == "-h" {
+        print_help();
+        return Ok(0);
+    }
+
+    println("cli: unknown subcommand: " + sub);
+    print_help();
+    process_exit(2);
+    return Err("cli: unknown subcommand: " + sub);
+}

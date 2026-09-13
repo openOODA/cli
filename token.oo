@@ -1,0 +1,24 @@
+// # cli token forwarder
+//
+// Logline: Forward `cli token <sub>` to `ooda-tui --token <sub>` so headless CI users keep a stable surface.
+//
+// Setup: ProcessCap spawns ooda-tui. Args are appended after --token.
+//
+// Beats:
+//   1. Build the ooda-tui argv: ["--token", <rest...>].
+//   2. Spawn ooda-tui under OODACODEX/bin or ~/.openooda/bin.
+//   3. Return the spawned exit code.
+
+import "std/fs/process/cmd.oo";
+import "build/spawn.oo";
+
+pub fn run_cli_token(fs_r: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: List[String]) -> Result[Int, String] {
+    let mut margs: List[String] = list_new();
+    margs = list_push(margs, "--token");
+    let mut i: Int = 0;
+    while i < list_len(args) {
+        margs = list_push(margs, list_get(args, i));
+        i = i + 1;
+    }
+    return spawn(fs_r, env, sys, "ooda-tui", margs);
+}

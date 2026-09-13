@@ -1,0 +1,20 @@
+// # openOODA CLI Build Cluster — Anchor for Agents
+//
+// Logline: Front door for the cli/ build-toolchain drivers and the project-init commands.
+//
+// Setup: find_compiler locates oodac; host_run/host_build drive oodac. context/health/test/install/gen/bench/init are user-facing.
+//
+// Beats:
+//   1. Toolchain plumbing: find_compiler, host_run, host_build — spawn oodac with OODA_COMPILER.
+//   2. Code generation: init scaffolds a new project layout (ooda.pkg + src/main.oo + tests/test_main.oo).
+//   3. Project lifecycle: install (XDG pack), update (self-update), qa (test orchestrator).
+//   4. Diagnostics: test orchestrates a build-then-exec pair under .ooda-cache/test/.
+
+import "find_compiler.oo";
+import "host_run.oo";
+import "host_build.oo";
+import "test.oo";
+import "install.oo";
+import "update.oo";
+import "init.oo";
+import "qa.oo";

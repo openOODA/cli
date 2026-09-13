@@ -1,0 +1,13 @@
+// # openOODA CLI Docs — Anchor for Agents
+//
+// Logline: ASD-STE100 process docs for the cli/ driver.
+//
+// Setup: One .oot file per spec (argv, install, fix, fmt, context, token). All <= 256 lines.
+//
+// Beats:
+//   1. argv.oot — argument grammar and error codes.
+//   2. install.oot — XDG pack install protocol.
+//   3. fix.oot — fix kinds, classifier, and 8-round loop.
+//   4. fmt.oot — formatter invariants and idempotence.
+//
+// Specs are .oot siblings; they are not .oo modules. Do not import them.

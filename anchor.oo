@@ -1,0 +1,26 @@
+// # openOODA CLI Driver — Anchor for Agents
+//
+// Logline: Front door for the cli/ repo. The trimmed language driver replaces the legacy surface of ooda/main.oo.
+//
+// Setup: Pure structural file. api_surface=4 (build, fix, fmt, context + token router).
+//
+// Beats:
+//   1. The 4 in-process subdirs: build/, fix/, fmt/, token/. main.oo routes argv.
+//   2. Router entries that move to ooda/main.oo: opm, lsp, mcp, mcp-merge (the legacy ooda binary forwards).
+//   3. qa/, docs/, examples/, audit/ are the tactical surfaces. No VERSION file.
+//      .github/workflows/ci.yml is the build/test/verify/release entry point.
+//   4. Spawn paths are $OODACODEX/bin/<name> only. Compiler path is OODA_COMPILER only.
+//   5. Layer 3 (Operational Logistics) per rules.oot 1.23. Depends on Layer 2 only.
+
+import "build/anchor.oo";
+import "fix/anchor.oo";
+import "fmt/anchor.oo";
+import "token/anchor.oo";
+import "qa/anchor.oo";
+import "audit/anchor.oo";
+import "docs/anchor.oo";
+import "examples/anchor.oo";
+
+pub fn cli_version() -> String {
+    return "v0.1.0";
+}

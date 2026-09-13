@@ -1,0 +1,12 @@
+// # openOODA CLI Fmt — Anchor for Agents
+//
+// Logline: Front door for the formatter. The fmt/ cluster has 1 sub-file.
+//
+// Setup: Pure string transform. No IO, no caps, no side effects beyond the file rewrite.
+//
+// Beats:
+//   1. fmt.oo reformats .oo source files in place under FsReadCap+FsWriteCap.
+//
+// Phase 1 placeholder. Phase 3 fills in the real handler from ooda/fmt/.
+
+import "fmt.oo";

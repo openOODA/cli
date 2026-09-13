@@ -1,0 +1,17 @@
+// # openOODA CLI QA Cluster — Anchor for Agents
+//
+// Logline: Front door for the cli/ local qa suite. Probes verify the trimmed driver.
+//
+// Setup: Each probe is a self-contained .oo file with real assertions. No mocks, no in-memory test stubs.
+//
+// Beats:
+//   1. probe_help.oo — `cli --help` exits 0 and lists 12 verbs. (Phase 2+)
+//   2. probe_version.oo — `cli --version` exits 0. (Phase 2+)
+//   3. probe_unknown.oo — `cli unknown-verb` exits 2. (Phase 2+)
+//   4. probe_line_cap.oo — every .oo file in cli/ is <= 256 lines. (Phase 2+)
+//   5. probe_file_law.oo — no forbidden file types in cli/. (Phase 2+)
+//   6. probe_academy.oo — every .oo file in cli/ has the 4-element Academy header. (Phase 2+)
+//   7. probe_router_parity.oo — `cli <sub>` matches `ooda <sub>` (router back-compat). (Phase 8)
+//   8. double_run.oo — runs every probe twice, asserts bit-identical output. (Phase 8)
+
+// Phase 1 placeholder. Phase 2+ adds the 8 probe imports and the real probe logic.

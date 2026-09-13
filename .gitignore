@@ -1,0 +1,8 @@
+dist/
+.ooda-cache/
+*.tmp
+*.tmp.c
+*.protos.c
+*.tu.c
+*.bin
+*.txt
