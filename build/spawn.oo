@@ -35,7 +35,6 @@ fn spawn_alias(name: String) -> String {
     if name == "lsp" { return "ooda-lsp"; }
     if name == "mcp" { return "ooda-mcp"; }
     if name == "tui" { return "ooda-tui"; }
-    if name == "cli" { return "ooda-cli"; }
     return "";
 }
 
@@ -51,9 +50,7 @@ pub fn spawn_compiler_cand(compiler: String, name: String) -> String {
     if compiler == "" { return ""; }
     let cdir: String = path_parent(compiler);
     if chars_len(cdir) == 0 { return ""; }
-    let mut want: String = spawn_alias(name);
-    if want == "" { want = name; }
-    return cdir + "/" + want;
+    return cdir + "/" + name;
 }
 
 fn spawn_resolve(fs: &FsReadCap, env: &EnvCap, name: String, codex: String) -> Result[String, String] {
