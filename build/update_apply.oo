@@ -7,7 +7,7 @@
 // Beats:
 //   1. Probe OS/ARCH and walk ooda/cli/tui/oodac/oodar/opm/lsp/mcp/bb.
 //   2. Match local sha256 to the latest sidecar; skip current, fetch stale.
-//   3. Write a tab report; tty spinner ticks each repo while curl runs.
+//   3. TTY: hidden cursor, fixed columns, color status, digest and size.
 
 fn int_to_str(n: Int) -> String {
     if n <= 0 { return "0"; }
@@ -43,26 +43,41 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "OS=$(uname -s); case \"$OS\" in Linux) OS=linux;; Darwin) OS=darwin;; *) OS=linux;; esac\n" +
         "ARCH=$(uname -m); case \"$ARCH\" in x86_64|amd64) ARCH=x86_64;; aarch64|arm64) ARCH=arm64;; *) ARCH=x86_64;; esac\n" +
         "GH=https://github.com/openOODA\n" +
-        "TTY=0; [ -t 2 ] && TTY=1\n" +
-        "FR=\"|/-\\\\\"\n" +
-        "TN=0\n" +
-        "tick() { [ \"$TTY\" = 1 ] || return 0; TN=$((TN+1)); local n p; n=${#FR}; p=$((TN % n)); printf '\\r  %s  %s   ' \"${FR:$p:1}\" \"$1\" >&2; }\n" +
-        "spin() { local p=$1 m=$2; if [ \"$TTY\" = 1 ]; then while kill -0 \"$p\" 2>/dev/null; do tick \"$m\"; sleep 0.08; done; fi; wait \"$p\"; return $?; }\n" +
-        "wipe() { [ \"$TTY\" = 1 ] && printf '\\r\\033[K' >&2 || true; }\n" +
-        "trap wipe EXIT\n" +
+        "TTY=0; [ -t 1 ] && TTY=1\n" +
+        "ESC=$(printf '\\033')\n" +
+        "if [ \"$TTY\" = 1 ]; then GRN=\"${ESC}[32m\"; YLW=\"${ESC}[33m\"; CYN=\"${ESC}[36m\"; RED=\"${ESC}[31m\"; DIM=\"${ESC}[2m\"; BLD=\"${ESC}[1m\"; RST=\"${ESC}[0m\"; HID=\"${ESC}[?25l\"; SHW=\"${ESC}[?25h\"; EL=\"${ESC}[K\"; else GRN=; YLW=; CYN=; RED=; DIM=; BLD=; RST=; HID=; SHW=; EL=; fi\n" +
+        "FR=\"|/-\\\\\"; TN=0; T0=$(date +%s); N_OK=0; N_ST=0; N_UP=0; N_FAIL=0; N_SKIP=0; IDX=0; TOTAL=9\n" +
+        "elapsed() { echo $(( $(date +%s) - T0 )); }\n" +
+        "finish() { printf '%s' \"$SHW\"; printf '\\r%s' \"$EL\"; }\n" +
+        "trap finish EXIT\n" +
+        "printf '%s' \"$HID\"\n" +
+        "tick() { [ \"$TTY\" = 1 ] || return 0; TN=$((TN+1)); local n p; n=${#FR}; p=$((TN % n)); printf '\\r  %s  %-8s  %-8s  %2d/%-2d  %3ds%s' \"${FR:$p:1}\" \"$1\" \"$2\" \"$IDX\" \"$TOTAL\" \"$(elapsed)\" \"$EL\"; }\n" +
+        "spin() { local p=$1; if [ \"$TTY\" = 1 ]; then while kill -0 \"$p\" 2>/dev/null; do tick \"$2\" \"$3\"; sleep 0.08; done; fi; wait \"$p\"; return $?; }\n" +
+        "d12() { local s=$1; if [ ${#s} -ge 12 ]; then echo \"${s:0:12}\"; elif [ -n \"$s\" ]; then printf '%-12s' \"$s\"; else echo '------------'; fi; }\n" +
+        "sz() { local n=${1:-0}; if [ \"$n\" -ge 1048576 ] 2>/dev/null; then printf '%7sM' $((n/1048576)); elif [ \"$n\" -ge 1024 ] 2>/dev/null; then printf '%7sK' $((n/1024)); elif [ \"$n\" -gt 0 ] 2>/dev/null; then printf '%8s' \"$n\"; else printf '%8s' '-'; fi; }\n" +
+        "lab() { case $1 in ok) echo CURRENT;; stale) echo STALE;; updated) echo UPDATED;; fail) echo FAIL;; *) echo SKIP;; esac; }\n" +
+        "col() { case $1 in ok) echo \"$GRN\";; stale) echo \"$YLW\";; updated) echo \"$CYN\";; fail) echo \"$RED\";; *) echo \"$DIM\";; esac; }\n" +
+        "row() { local u=$1 st=$2 dg=$3 by=$4 nt=$5 c; c=$(col \"$st\"); printf '\\r%s' \"$EL\"; printf '  %-8s  %s%-8s%s  %-12s  %s  %s\\n' \"$u\" \"$c\" \"$(lab \"$st\")\" \"$RST\" \"$(d12 \"$dg\")\" \"$(sz \"$by\")\" \"$nt\"; }\n" +
         "sha_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum \"$1\" | awk '{print $1}'; else shasum -a 256 \"$1\" | awk '{print $1}'; fi; }\n" +
+        "bytes_of() { if [ -e \"$1\" ]; then wc -c < \"$1\" | tr -d ' \\n'; else echo 0; fi; }\n" +
+        "TITLE='ooda update'; [ \"$MODE\" = check ] && TITLE='ooda update --check'; [ \"$MODE\" = dry ] && TITLE='ooda update --dry-run'\n" +
+        "printf '%s%s%s  %s%s/%s%s\\n' \"$BLD\" \"$TITLE\" \"$RST\" \"$DIM\" \"$OS\" \"$ARCH\" \"$RST\"\n" +
+        "printf '%sprefix  %s%s\\n' \"$DIM\" \"$PREFIX\" \"$RST\"\n" +
+        "printf '\\n  %s%-8s  %-8s  %-12s  %8s  %s%s\\n' \"$DIM\" UNIT STATUS DIGEST SIZE NOTE \"$RST\"\n" +
         "printf 'repo\\tbin\\tstatus\\tdetail\\n' > \"$RPT\"\n" +
         "while IFS=' ' read -r repo dest stem; do\n" +
         "  [ -z \"$repo\" ] && continue\n" +
+        "  IDX=$((IDX+1))\n" +
         "  path=\"$BIN/$dest\"\n" +
         "  url=\"$GH/$repo/releases/latest/download/${stem}-${OS}-${ARCH}\"\n" +
         "  sf=$(mktemp); curl -fsSL --connect-timeout 10 -m 20 \"${url}.sha256\" -o \"$sf\" 2>/dev/null &\n" +
-        "  spin $! \"$repo\"; crc=$?\n" +
+        "  spin $! \"$repo\" HASH; crc=$?\n" +
         "  rsha=; [ $crc -eq 0 ] && [ -s \"$sf\" ] && rsha=$(awk '{print $1}' \"$sf\")\n" +
         "  rm -f \"$sf\"\n" +
+        "  by=$(bytes_of \"$path\")\n" +
         "  if [ -z \"$rsha\" ]; then\n" +
-        "    if [ ! -e \"$path\" ]; then printf '%s\\t%s\\tskip\\tno-release\\n' \"$repo\" \"$path\" >> \"$RPT\"\n" +
-        "    else printf '%s\\t%s\\tfail\\tno-sha\\n' \"$repo\" \"$path\" >> \"$RPT\"; fi\n" +
+        "    if [ ! -e \"$path\" ]; then printf '%s\\t%s\\tskip\\tno-release\\n' \"$repo\" \"$path\" >> \"$RPT\"; row \"$repo\" skip '' 0 no-release; N_SKIP=$((N_SKIP+1))\n" +
+        "    else printf '%s\\t%s\\tfail\\tno-sha\\n' \"$repo\" \"$path\" >> \"$RPT\"; row \"$repo\" fail '' \"$by\" no-sha; N_FAIL=$((N_FAIL+1)); fi\n" +
         "    continue\n" +
         "  fi\n" +
         "  lsha=missing\n" +
@@ -70,19 +85,24 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  if [ \"$lsha\" = \"$rsha\" ]; then\n" +
         "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
         "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"bb\" ]; then cp -f \"$path\" \"$BIN/blackbox\" 2>/dev/null || true; chmod +x \"$BIN/blackbox\" 2>/dev/null || true; fi\n" +
-        "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue\n" +
+        "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"\n" +
+        "    row \"$repo\" ok \"$rsha\" \"$by\" ''\n" +
+        "    N_OK=$((N_OK+1)); continue\n" +
         "  fi\n" +
-        "  if [ \"$MODE\" != \"apply\" ]; then printf '%s\\t%s\\tstale\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"; continue; fi\n" +
+        "  if [ \"$MODE\" != \"apply\" ]; then printf '%s\\t%s\\tstale\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"; row \"$repo\" stale \"$rsha\" \"$by\" fetch; N_ST=$((N_ST+1)); continue; fi\n" +
         "  tmp=$(mktemp); curl -fsSL --connect-timeout 10 -m 90 \"$url\" -o \"$tmp\" &\n" +
-        "  spin $! \"fetch $repo\"\n" +
-        "  if [ $? -ne 0 ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tdownload\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
+        "  spin $! \"$repo\" FETCH\n" +
+        "  if [ $? -ne 0 ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tdownload\\n' \"$repo\" \"$path\" >> \"$RPT\"; row \"$repo\" fail '' \"$by\" download; N_FAIL=$((N_FAIL+1)); continue; fi\n" +
         "  gsha=$(sha_of \"$tmp\")\n" +
-        "  if [ \"$gsha\" != \"$rsha\" ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tsha-mismatch\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
+        "  if [ \"$gsha\" != \"$rsha\" ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tsha-mismatch\\n' \"$repo\" \"$path\" >> \"$RPT\"; row \"$repo\" fail '' \"$by\" sha-mismatch; N_FAIL=$((N_FAIL+1)); continue; fi\n" +
         "  chmod +x \"$tmp\" 2>/dev/null || true\n" +
         "  mv -f \"$tmp\" \"$path\"\n" +
         "  if [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
         "  if [ \"$repo\" = \"bb\" ] && [ -e \"$path\" ]; then cp -f \"$path\" \"$BIN/blackbox\" 2>/dev/null || true; chmod +x \"$BIN/blackbox\" 2>/dev/null || true; fi\n" +
+        "  by=$(bytes_of \"$path\")\n" +
         "  printf '%s\\t%s\\tupdated\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"\n" +
+        "  row \"$repo\" updated \"$rsha\" \"$by\" ''\n" +
+        "  N_UP=$((N_UP+1))\n" +
         "done <<'COMPS'\n" +
         "ooda ooda ooda\n" +
         "cli cli cli\n" +
@@ -97,44 +117,17 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "STD=\"$PREFIX/std\"\n" +
         "if [ -d \"$STD/.git\" ] && [ \"$MODE\" = \"apply\" ]; then\n" +
         "  git -C \"$STD\" pull --ff-only --quiet 2>/dev/null &\n" +
-        "  spin $! std\n" +
-        "  if [ $? -eq 0 ]; then printf 'std\\t%s\\tupdated\\tpull\\n' \"$STD\" >> \"$RPT\"\n" +
-        "  else printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
-        "elif [ -d \"$STD\" ]; then printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
-        "wipe\n" +
+        "  spin $! std PULL\n" +
+        "  if [ $? -eq 0 ]; then printf 'std\\t%s\\tupdated\\tpull\\n' \"$STD\" >> \"$RPT\"; row std updated git 0 pull; N_UP=$((N_UP+1))\n" +
+        "  else printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; row std ok git 0 present; N_OK=$((N_OK+1)); fi\n" +
+        "elif [ -d \"$STD\" ]; then printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; row std ok git 0 present; N_OK=$((N_OK+1)); fi\n" +
+        "printf '\\n  %s%-8s%s %s  %s%-8s%s %s  %s%-8s%s %s  %s%-8s%s %s\\n' \"$GRN\" CURRENT \"$RST\" \"$N_OK\" \"$YLW\" STALE \"$RST\" \"$N_ST\" \"$CYN\" UPDATED \"$RST\" \"$N_UP\" \"$RED\" FAIL \"$RST\" \"$N_FAIL\"\n" +
+        "ELAP=$(elapsed)\n" +
+        "if [ \"$N_FAIL\" -gt 0 ]; then printf '  %sFAIL%s  %ss\\n' \"$RED\" \"$RST\" \"$ELAP\"\n" +
+        "elif [ \"$MODE\" != apply ] && [ \"$N_ST\" -gt 0 ]; then printf '  %sSTALE%s  ->  ooda update  %s%ss%s\\n' \"$YLW\" \"$RST\" \"$DIM\" \"$ELAP\" \"$RST\"\n" +
+        "elif [ \"$MODE\" = apply ] && [ \"$N_UP\" -gt 0 ]; then printf '  %sUPDATED%s  latest  %s%ss%s\\n' \"$CYN\" \"$RST\" \"$DIM\" \"$ELAP\" \"$RST\"\n" +
+        "else printf '  %sCURRENT%s  already latest  %s%ss%s\\n' \"$GRN\" \"$RST\" \"$DIM\" \"$ELAP\" \"$RST\"; fi\n" +
         "exit 0\n";
-}
-
-fn pad_right(s: String, w: Int) -> String {
-    let mut out: String = s;
-    while chars_len(out) < w { out = out + " "; }
-    return out;
-}
-
-fn status_word(st: String) -> String {
-    if st == "ok" { return "current"; }
-    if st == "updated" { return "updated"; }
-    if st == "stale" { return "stale"; }
-    if st == "fail" { return "FAIL"; }
-    if st == "skip" { return "skip"; }
-    return st;
-}
-
-fn print_closer(mode: String, n_up: Int, n_st: Int, n_fail: Int) {
-    println("");
-    if n_fail > 0 {
-        println("  " + int_to_str(n_fail) + " failed");
-        return;
-    }
-    if mode != "apply" && n_st > 0 {
-        println("  " + int_to_str(n_st) + " stale  ->  ooda update");
-        return;
-    }
-    if mode == "apply" && n_up > 0 {
-        println("  " + int_to_str(n_up) + " updated. latest.");
-        return;
-    }
-    println("  already latest");
 }
 
 fn field_at(line: String, idx: Int) -> String {
@@ -165,11 +158,6 @@ pub fn update_run_plan(fr: &FsReadCap, sys: &ProcessCap, mode: String, prefix: S
     let cr: Result[String, String] = read_file(fr, rpt);
     if cr.is_err() { println("ERROR: update report missing"); return 1; }
     let body: String = match cr { Ok(s) => s, Err(_) => "" };
-    if mode == "check" { println("ooda update --check"); }
-    else if mode == "dry" { println("ooda update --dry-run"); }
-    else { println("ooda update"); }
-    println("");
-    let mut n_up: Int = 0;
     let mut n_st: Int = 0;
     let mut n_fail: Int = 0;
     let mut i: Int = 0;
@@ -187,19 +175,10 @@ pub fn update_run_plan(fr: &FsReadCap, sys: &ProcessCap, mode: String, prefix: S
         let line: String = str_slice(body, i, j);
         i = j + 1;
         if line == "" { continue; }
-        let repo: String = field_at(line, 0);
         let st: String = field_at(line, 2);
-        let det: String = field_at(line, 3);
-        if st == "updated" { n_up = n_up + 1; }
-        else if st == "stale" { n_st = n_st + 1; }
+        if st == "stale" { n_st = n_st + 1; }
         else if st == "fail" { n_fail = n_fail + 1; }
-        let mut extra: String = "";
-        if st == "fail" || st == "skip" {
-            if det != "" { extra = "  " + det; }
-        }
-        println("  " + pad_right(repo, 8) + status_word(st) + extra);
     }
-    print_closer(mode, n_up, n_st, n_fail);
     if n_fail > 0 { return 1; }
     if mode != "apply" && n_st > 0 { return 1; }
     return 0;

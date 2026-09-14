@@ -135,7 +135,7 @@ jobs:
           set -e
           ./dist/cli --help | grep -q update
           ./dist/cli --help | grep -q -- --check
-          ./dist/cli version | grep -q "v0.1.8"
+          ./dist/cli version | grep -q "v0.1.9"
           set +e
           ./dist/cli unknown-verb >/dev/null 2>&1
           rc=$?
