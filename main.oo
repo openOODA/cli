@@ -23,7 +23,7 @@ import "context.oo";
 import "token.oo";
 
 fn cli_version() -> String {
-    return "v0.1.9";
+    return "v0.1.10";
 }
 
 fn print_help() {

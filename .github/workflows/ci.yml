@@ -135,7 +135,7 @@ jobs:
           set -e
           ./dist/cli --help | grep -q update
           ./dist/cli --help | grep -q -- --check
-          ./dist/cli version | grep -q "v0.1.9"
+          ./dist/cli version | grep -q "v0.1.10"
           set +e
           ./dist/cli unknown-verb >/dev/null 2>&1
           rc=$?
@@ -168,7 +168,7 @@ jobs:
             echo "$output" | grep '/dev/null: Permission denied' | head -5
             exit 1
           fi
-          if ! echo "$output" | grep -q 'ooda update --check'; then
+          if ! echo "$output" | grep -q 'DIGEST'; then
             echo "FAIL: cli update --check did not produce the hash report"
             echo "$output" | tail -20
             exit 1

@@ -22,5 +22,5 @@ import "docs/anchor.oo";
 import "examples/anchor.oo";
 
 pub fn cli_version() -> String {
-    return "v0.1.9";
+    return "v0.1.10";
 }

@@ -57,13 +57,10 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "sz() { local n=${1:-0}; if [ \"$n\" -ge 1048576 ] 2>/dev/null; then printf '%7sM' $((n/1048576)); elif [ \"$n\" -ge 1024 ] 2>/dev/null; then printf '%7sK' $((n/1024)); elif [ \"$n\" -gt 0 ] 2>/dev/null; then printf '%8s' \"$n\"; else printf '%8s' '-'; fi; }\n" +
         "lab() { case $1 in ok) echo CURRENT;; stale) echo STALE;; updated) echo UPDATED;; fail) echo FAIL;; *) echo SKIP;; esac; }\n" +
         "col() { case $1 in ok) echo \"$GRN\";; stale) echo \"$YLW\";; updated) echo \"$CYN\";; fail) echo \"$RED\";; *) echo \"$DIM\";; esac; }\n" +
-        "row() { local u=$1 st=$2 dg=$3 by=$4 nt=$5 c; c=$(col \"$st\"); printf '\\r%s' \"$EL\"; printf '  %-8s  %s%-8s%s  %-12s  %s  %s\\n' \"$u\" \"$c\" \"$(lab \"$st\")\" \"$RST\" \"$(d12 \"$dg\")\" \"$(sz \"$by\")\" \"$nt\"; }\n" +
+        "row() { local u=$1 st=$2 dg=$3 by=$4 nt=$5 c; c=$(col \"$st\"); [ \"$TTY\" = 1 ] && printf '\\r%s' \"$EL\"; printf '  %-8s  %s%-8s%s  %-12s  %s  %s\\n' \"$u\" \"$c\" \"$(lab \"$st\")\" \"$RST\" \"$(d12 \"$dg\")\" \"$(sz \"$by\")\" \"$nt\"; }\n" +
         "sha_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum \"$1\" | awk '{print $1}'; else shasum -a 256 \"$1\" | awk '{print $1}'; fi; }\n" +
         "bytes_of() { if [ -e \"$1\" ]; then wc -c < \"$1\" | tr -d ' \\n'; else echo 0; fi; }\n" +
-        "TITLE='ooda update'; [ \"$MODE\" = check ] && TITLE='ooda update --check'; [ \"$MODE\" = dry ] && TITLE='ooda update --dry-run'\n" +
-        "printf '%s%s%s  %s%s/%s%s\\n' \"$BLD\" \"$TITLE\" \"$RST\" \"$DIM\" \"$OS\" \"$ARCH\" \"$RST\"\n" +
-        "printf '%sprefix  %s%s\\n' \"$DIM\" \"$PREFIX\" \"$RST\"\n" +
-        "printf '\\n  %s%-8s  %-8s  %-12s  %8s  %s%s\\n' \"$DIM\" UNIT STATUS DIGEST SIZE NOTE \"$RST\"\n" +
+        "printf '  %s%-8s  %-8s  %-12s  %8s  %s%s\\n' \"$DIM\" UNIT STATUS DIGEST SIZE NOTE \"$RST\"\n" +
         "printf 'repo\\tbin\\tstatus\\tdetail\\n' > \"$RPT\"\n" +
         "while IFS=' ' read -r repo dest stem; do\n" +
         "  [ -z \"$repo\" ] && continue\n" +
