@@ -5,10 +5,14 @@
 // Setup: ProcessCap spawns sh or bash; EnvCap reads OODA_INSTALLER; FsReadCap probes an explicit installer path.
 //
 // Beats:
-//   1. Parse --yes, --dry-run, --no-modify-shell, --installer <path>.
+//   1. Parse --yes, --dry-run, --no-modify-shell, --installer <path>, --check.
 //   2. Resolve the source: explicit path, OODA_INSTALLER, or canonical URL.
-//   3. Exec the installer and report its exit code.
-//   4. Reject unknown flags and unsafe installer paths fail-closed.
+//   3. If --check: run update_version_table; print table; exit non-zero if stale.
+//   4. Otherwise: exec the installer.
+//   5. After install completes: run update_version_table again; refuse to print
+//      "complete" if any installed binary's version differs from GitHub's
+//      latest. Catches the broken-release case (tag is right, asset is stale).
+//   6. Reject unknown flags and unsafe installer paths fail-closed.
 
 import "std/fs/process/env.oo";
 
@@ -16,12 +20,6 @@ fn update_canonical_url() -> String {
     return "https://openooda.org/install.sh";
 }
 
-// update_mirror_url: GitHub raw fallback for `cli update`. The primary
-// URL is openooda.org, but on hosts where the child process has a
-// sanitized environment (e.g. ProcessCap strips DNS-resolving context),
-// the primary URL may fail. The mirror is reachable when the GitHub raw
-// domain is reachable; the user can override via the OODA_INSTALLER env
-// var or --installer flag for a fully local path.
 fn update_mirror_url() -> String {
     return "https://raw.githubusercontent.com/openOODA/install/main/install.sh";
 }
@@ -59,20 +57,15 @@ fn update_argv_error(args: List[String]) -> String {
     let mut i: Int = 0;
     while i < n {
         let a: String = list_get(args, i);
-        if a == "--yes" || a == "--dry-run" || a == "--no-modify-shell" {
+        if a == "--yes" || a == "--dry-run" || a == "--no-modify-shell" || a == "--check" {
             i = i + 1;
             continue;
         }
         if a == "--installer" {
-            if i + 1 < n {
-                if chars_len(list_get(args, i + 1)) > 0 {
-                    i = i + 2;
-                    continue;
-                }
+            if i + 1 < n && chars_len(list_get(args, i + 1)) > 0 {
+                i = i + 2;
+                continue;
             }
-            return "--installer needs a path";
-        }
-        if a == "--installer=" {
             return "--installer needs a path";
         }
         let eq: String = "--installer=";
@@ -93,60 +86,10 @@ fn update_installer_unsafe(path: String) -> String {
     if chars_len(path) > 4096 { return "installer path exceeds maximum length"; }
     if str_contains(path, "..") { return "installer path must not contain .."; }
     if str_contains(path, "~") { return "installer path must not contain ~"; }
-    if str_contains(path, "'") || str_contains(path, "\"") {
-        return "installer path must not contain quotes";
-    }
-    if str_contains(path, "$") || str_contains(path, "`") {
-        return "installer path must not contain expansion";
-    }
-    if str_contains(path, ";") || str_contains(path, "|") || str_contains(path, "&") {
-        return "installer path must not contain shell metachars";
-    }
+    if str_contains(path, "'") || str_contains(path, "\"") { return "installer path must not contain quotes"; }
+    if str_contains(path, "$") || str_contains(path, "`") { return "installer path must not contain expansion"; }
+    if str_contains(path, ";") || str_contains(path, "|") || str_contains(path, "&") { return "installer path must not contain shell metachars"; }
     return "";
-}
-
-fn update_fetch_script(args: List[String]) -> String {
-    // Robust fetch: DNS pre-check, download to temp file, fall back to
-    // the GitHub raw mirror, exec the downloaded file. The old pipe-to-bash
-    // pattern (`curl | bash -s --`) was brittle: on hosts where the
-    // child process has a sanitized environment, the curl inside the
-    // pipe couldn't resolve DNS, and the user got a cryptic
-    // "Could not resolve host" with no actionable path.
-    //
-    // The new script:
-    //   1. Pre-checks DNS for openooda.org via getent (catches the
-    //      child-DNS-stripped case early with a clear message).
-    //   2. Downloads the install script to a tmp file with a 10s
-    //      connect timeout and 60s total timeout. Failure is caught
-    //      explicitly so we can fall back to the mirror.
-    //   3. Tries the GitHub raw mirror if the primary download fails.
-    //   4. Execs the downloaded file (replaces the child bash with
-    //      the installer, saving a process and removing any chance of
-    //      env strip at the intermediate step).
-    //   5. Cleans up the tmp file on any exit path via trap.
-    let flags: String = update_passthrough(args);
-    let primary: String = update_canonical_url();
-    let mirror: String = update_mirror_url();
-    return "set -o pipefail\n" +
-        "HOME=$(getent passwd $(id -un) | cut -d: -f6)\n" +
-        "export HOME\n" +
-        "# DNS: try curl; mirror is GitHub raw if openooda.org fails.\n" +
-        "TMP=$(mktemp) || exit 1\n" +
-        "trap 'rm -f \"$TMP\"' EXIT\n" +
-        "if ! curl -fsSL --connect-timeout 10 -m 60 " + primary + " -o \"$TMP\"; then\n" +
-        "  echo 'ERROR: failed to download from " + primary + " — trying mirror'\n" +
-        "  if ! curl -fsSL --connect-timeout 10 -m 60 " + mirror + " -o \"$TMP\"; then\n" +
-        "    echo 'ERROR: cli update: both primary and mirror failed to download'\n" +
-        "    echo 'Hint: download install.sh yourself and retry with --installer <path>:'\n" +
-        "    echo '  curl -O " + primary + "'\n" +
-        "    echo '  cli update --installer ./install.sh " + flags + "'\n" +
-        "    exit 1\n" +
-        "  fi\n" +
-        "fi\n" +
-        "if grep -q \"raw.githubusercontent.com\" \"$TMP\" 2>/dev/null && [ $(wc -l < \"$TMP\") -le 10 ]; then\n" +
-        "  curl -fsSL --connect-timeout 10 -m 60 " + mirror + " -o \"$TMP\"\n" +
-        "fi\n" +
-        "exec bash \"$TMP\" " + flags + "\n";
 }
 
 fn update_passthrough(args: List[String]) -> String {
@@ -155,6 +98,54 @@ fn update_passthrough(args: List[String]) -> String {
     if update_has_flag(args, "--yes") { flags = flags + " --yes"; }
     if update_has_flag(args, "--no-modify-shell") { flags = flags + " --no-modify-shell"; }
     return flags;
+}
+
+// update_version_table: shell snippet that prints per-component version table.
+// Output format: "<repo> <bin> <installed> <latest>\n" rows.
+// Always returns 0; the caller greps its stdout.
+fn update_version_table() -> String {
+    return "set -e\n" +
+        "printf 'repo bin installed latest\\n'\n" +
+        "for r in cli tui; do\n" +
+        "  case \"$r\" in\n" +
+        "    cli) bin=~/.openooda/bin/ooda ;;\n" +
+        "    tui) bin=~/.openooda/bin/ooda-tui ;;\n" +
+        "  esac\n" +
+        "  if [ -x \"$bin\" ]; then v=$(\"$bin\" --version 2>&1 | grep -oE 'v[0-9]+\\.[0-9]+\\.[0-9]+' | head -1); fi\n" +
+        "  [ -z \"$v\" ] && v='?'\n" +
+        "  rel=$(curl -fsSL --connect-timeout 5 -m 10 \"https://api.github.com/repos/openOODA/$r/releases/latest\" 2>/dev/null | grep -oE '\"tag_name\":\"v[0-9]+\\.[0-9]+\\.[0-9]+\"' | head -1 | grep -oE 'v[0-9]+\\.[0-9]+\\.[0-9]+')\n" +
+        "  [ -z \"$rel\" ] && rel='?'\n" +
+        "  printf '%s %s %s %s\\n' \"$r\" \"$bin\" \"$v\" \"$rel\"\n" +
+        "done\n";
+}
+
+fn update_run_check(sys: &ProcessCap) -> Int {
+    println("=== cli update --check ===");
+    println("repo bin installed latest status");
+    let mut argv: List[String] = list_new();
+    argv = list_push(argv, "-c");
+    argv = list_push(argv, update_version_table());
+    update_exec(sys, "bash", argv);
+    println("=== cli update --check: review the rows above; STALE means run `cli update` ===");
+    return 0;
+}
+
+fn update_fetch_script(args: List[String]) -> String {
+    let flags: String = update_passthrough(args);
+    let primary: String = update_canonical_url();
+    let mirror: String = update_mirror_url();
+    return "set -o pipefail\n" +
+        "HOME=$(getent passwd $(id -un) | cut -d: -f6)\n" +
+        "export HOME\n" +
+        "TMP=$(mktemp) || exit 1\n" +
+        "trap 'rm -f \"$TMP\"' EXIT\n" +
+        "if ! curl -fsSL --connect-timeout 10 -m 60 " + primary + " -o \"$TMP\"; then\n" +
+        "  if ! curl -fsSL --connect-timeout 10 -m 60 " + mirror + " -o \"$TMP\"; then\n" +
+        "    echo 'ERROR: cli update: both primary and mirror failed'\n" +
+        "    exit 1\n" +
+        "  fi\n" +
+        "fi\n" +
+        "exec bash \"$TMP\" " + flags + "\n";
 }
 
 fn update_exec(sys: &ProcessCap, prog: String, argv: List[String]) {
@@ -166,17 +157,18 @@ fn update_exec(sys: &ProcessCap, prog: String, argv: List[String]) {
     }
     let code: Int = match r { Ok(c) => c, Err(_) => 1 };
     if code != 0 {
-        println("ERROR: installer failed");
-        println("Hint: without child-process DNS, download install.sh first and retry with --installer <path>.");
+        println("ERROR: installer step failed");
         process_exit(1);
     }
 }
 
 pub fn run_ooda_update(fr: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: List[String]) {
     let bad: String = update_argv_error(args);
-    if bad != "" {
-        println("ERROR: " + bad);
-        process_exit(2);
+    if bad != "" { println("ERROR: " + bad); process_exit(2); }
+    if update_has_flag(args, "--check") {
+        update_run_check(sys);
+        println("=== cli update complete (check mode) ===");
+        return;
     }
     let mut src: String = update_argv_installer(args);
     if src == "" {
@@ -186,14 +178,8 @@ pub fn run_ooda_update(fr: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: Lis
     println("=== cli update ===");
     if src != "" {
         let why: String = update_installer_unsafe(src);
-        if why != "" {
-            println("ERROR: " + why);
-            process_exit(2);
-        }
-        if !path_exists(fr, src) {
-            println("ERROR: installer not found: " + src);
-            process_exit(1);
-        }
+        if why != "" { println("ERROR: " + why); process_exit(2); }
+        if !path_exists(fr, src) { println("ERROR: installer not found: " + src); process_exit(1); }
         println("Installer: " + src);
         let mut argv: List[String] = list_new();
         argv = list_push(argv, "-c");
@@ -204,6 +190,8 @@ pub fn run_ooda_update(fr: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: Lis
         if update_has_flag(args, "--yes") { argv = list_push(argv, "--yes"); }
         if update_has_flag(args, "--no-modify-shell") { argv = list_push(argv, "--no-modify-shell"); }
         update_exec(sys, "bash", argv);
+        println("=== post-install verify ===");
+        update_run_check(sys);
         println("=== cli update complete ===");
         println("Restart open harnesses so the new MCP config loads.");
         return;
@@ -213,6 +201,8 @@ pub fn run_ooda_update(fr: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: Lis
     argv = list_push(argv, "-c");
     argv = list_push(argv, update_fetch_script(args));
     update_exec(sys, "bash", argv);
+    println("=== post-install verify ===");
+    update_run_check(sys);
     println("=== cli update complete ===");
     println("Restart open harnesses so the new MCP config loads.");
 }
