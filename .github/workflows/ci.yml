@@ -181,7 +181,6 @@ jobs:
         with:
           name: cli-linux
           path: |
-            cli/dist/cli
             cli/dist/cli-linux-x86_64
             cli/dist/cli-linux-x86_64.sha256
 
