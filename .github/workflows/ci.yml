@@ -112,6 +112,17 @@ jobs:
           ./dist/cli version
           ./dist/cli unknown-verb 2>/dev/null || test $? -eq 2
 
+      - name: Landlock-update-bypass sentinel (Plan v29 regression)
+        run: |
+          set -e
+          if ! strings dist/cli | grep -q OK_LANDLOCK_UPDATE_BYPASS; then
+            echo "FAIL: cli binary missing OK_LANDLOCK_UPDATE_BYPASS sentinel"
+            echo "      cli was built against oodar < v4.0.29; install.sh installs"
+            echo "      the bypass but cli must be rebuilt against the same oodar source."
+            exit 1
+          fi
+          echo "PASS: OK_LANDLOCK_UPDATE_BYPASS sentinel present"
+
       - name: Binary parity (rules.oot §1.10)
         run: |
           set -e
@@ -124,6 +135,26 @@ jobs:
             exit 1
           fi
           echo "PASS: binary parity holds ($dist_sum)"
+
+      - name: cli update --check (Plan v29 smoke)
+        run: |
+          set -e
+          # cli update --check must not emit /dev/null: Permission denied.
+          # That error pattern means the cli binary is in landlock jail and
+          # the bash subprocess inherited the policy (Plan v29 regression).
+          output=$(./dist/cli update --check 2>&1 || true)
+          if echo "$output" | grep -q '/dev/null: Permission denied'; then
+            echo "FAIL: cli update --check emits /dev/null: Permission denied"
+            echo "$output" | grep '/dev/null: Permission denied' | head -5
+            exit 1
+          fi
+          if ! echo "$output" | grep -q '=== cli update --check ==='; then
+            echo "FAIL: cli update --check did not produce the report table"
+            echo "$output" | tail -10
+            exit 1
+          fi
+          echo "PASS: cli update --check runs without /dev/null errors"
+          echo "$output" | head -20
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
