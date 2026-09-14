@@ -27,6 +27,12 @@ jobs:
           repository: openOODA/oodar
           path: oodar
 
+      - name: Checkout oodac
+        uses: actions/checkout@v4
+        with:
+          repository: openOODA/oodac
+          path: oodac
+
       - name: Install toolchain
         run: |
           set -euo pipefail
@@ -46,6 +52,7 @@ jobs:
           echo "$HOME/.openooda/bin" >> "$GITHUB_PATH"
           test -x "$HOME/.openooda/bin/oodac"
           test -f "$GITHUB_WORKSPACE/std/fs/process/env.oo"
+          test -f "$GITHUB_WORKSPACE/oodac/lex/oodac_fmt.oo"
 
       - name: 256-line cap check
         working-directory: cli
@@ -94,8 +101,6 @@ jobs:
         working-directory: cli
         env:
           OO_LIST_AMBIENT_QUOTA: "1073741824"
-          OODACODEX: ${{ github.workspace }}/../northstar.oot
-          OODA_COMPILER: /home/runner/.openooda/bin/oodac
         run: |
           set -e
           export OODACODEX="$HOME/.openooda/northstar.oot"
