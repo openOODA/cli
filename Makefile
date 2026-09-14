@@ -14,7 +14,10 @@
 #   make clean       - remove build artifacts
 #   make all         - build + verify + test
 
-OODA_COMPILER ?= $(HOME)/.openooda/bin/oodac
+# LLVM emit of this graph currently fails. Prefer a compiler that still
+# has --backend c (oodac_bin.core, or oodac v0.2.66).
+OODA_COMPILER ?= $(firstword $(wildcard $(HOME)/.openooda/bin/oodac_bin.core $(HOME)/.openooda/bin/oodac))
+OODACODEX ?= $(HOME)/.openooda/northstar.oot
 BIN := dist/cli
 
 .PHONY: all build test parity line-cap file-law academy verify install clean
@@ -22,8 +25,8 @@ BIN := dist/cli
 all: verify
 
 build:
-	@mkdir -p dist
-	$(OODA_COMPILER) build --backend c main.oo -o $(BIN)
+	@mkdir -p dist .ooda-cache/ooda-tmp
+	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 $(OODA_COMPILER) build --backend c main.oo -o $(BIN)
 	@chmod +x $(BIN)
 	@cp -a $(BIN) dist/cli-linux-x86_64
 	@echo "built $(BIN)"

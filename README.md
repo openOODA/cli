@@ -21,7 +21,9 @@ cli run <file> [flags]        # compile and execute a .oo file
 cli test <file> [--json]      # build and run a .oo test
 cli fmt <file> [--check]      # reformat a .oo file in place
 cli install [--to PATH]       # install the cli pack to a prefix
-cli update                    # self-update the toolchain from openooda.org
+cli update                    # refresh stale binaries vs GitHub latest (sha256)
+cli update --check            # report current vs latest, no writes
+cli update --bootstrap        # full reinstall via install.sh (escape hatch)
 cli init [name]               # scaffold a new project layout
 cli qa [--all]                # run the local qa suite
 cli context [dir] [--json]    # list .oo files under a directory
