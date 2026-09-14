@@ -37,7 +37,6 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "HOME=$(getent passwd $(id -un) | cut -d: -f6); HOME=${HOME:-/home/$(id -un)}\n" +
         "if [ \"$HOME\" = \"~\" ]; then HOME=/home/$(id -un); fi\n" +
         pref_line +
-        "echo \"prefix $PREFIX\" >&2\n" +
         "BIN=\"$PREFIX/bin\"\n" +
         "if [ \"$MODE\" = \"apply\" ]; then mkdir -p \"$BIN\"; fi\n" +
         "RPT=\"" + rpt + "\"; rm -f \"$RPT\"\n" +
@@ -64,7 +63,7 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue\n" +
         "  fi\n" +
         "  if [ \"$MODE\" != \"apply\" ]; then printf '%s\\t%s\\tstale\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"; continue; fi\n" +
-        "  echo \"fetch $repo\" >&2\n" +
+        "  echo \"  fetching $repo\" >&2\n" +
         "  tmp=$(mktemp)\n" +
         "  if ! curl -fsSL --connect-timeout 10 -m 90 \"$url\" -o \"$tmp\"; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tdownload\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
         "  gsha=$(sha_of \"$tmp\")\n" +
@@ -91,6 +90,38 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  else printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
         "elif [ -d \"$STD\" ]; then printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
         "exit 0\n";
+}
+
+fn pad_right(s: String, w: Int) -> String {
+    let mut out: String = s;
+    while chars_len(out) < w { out = out + " "; }
+    return out;
+}
+
+fn status_word(st: String) -> String {
+    if st == "ok" { return "current"; }
+    if st == "updated" { return "updated"; }
+    if st == "stale" { return "stale"; }
+    if st == "fail" { return "FAIL"; }
+    if st == "skip" { return "skip"; }
+    return st;
+}
+
+fn print_closer(mode: String, n_up: Int, n_st: Int, n_fail: Int) {
+    println("");
+    if n_fail > 0 {
+        println("  " + int_to_str(n_fail) + " failed");
+        return;
+    }
+    if mode != "apply" && n_st > 0 {
+        println("  " + int_to_str(n_st) + " stale  ->  ooda update");
+        return;
+    }
+    if mode == "apply" && n_up > 0 {
+        println("  " + int_to_str(n_up) + " updated. latest.");
+        return;
+    }
+    println("  already latest");
 }
 
 fn field_at(line: String, idx: Int) -> String {
@@ -121,15 +152,13 @@ pub fn update_run_plan(fr: &FsReadCap, sys: &ProcessCap, mode: String, prefix: S
     let cr: Result[String, String] = read_file(fr, rpt);
     if cr.is_err() { println("ERROR: update report missing"); return 1; }
     let body: String = match cr { Ok(s) => s, Err(_) => "" };
-    if mode == "check" { println("=== ooda update --check ==="); }
-    else if mode == "dry" { println("=== ooda update --dry-run ==="); }
-    else { println("=== ooda update ==="); }
-    println("component  path  status  detail");
-    let mut n_ok: Int = 0;
+    if mode == "check" { println("ooda update --check"); }
+    else if mode == "dry" { println("ooda update --dry-run"); }
+    else { println("ooda update"); }
+    println("");
     let mut n_up: Int = 0;
     let mut n_st: Int = 0;
     let mut n_fail: Int = 0;
-    let mut n_skip: Int = 0;
     let mut i: Int = 0;
     let n: Int = chars_len(body);
     while i < n {
@@ -146,20 +175,19 @@ pub fn update_run_plan(fr: &FsReadCap, sys: &ProcessCap, mode: String, prefix: S
         i = j + 1;
         if line == "" { continue; }
         let repo: String = field_at(line, 0);
-        let bin: String = field_at(line, 1);
         let st: String = field_at(line, 2);
         let det: String = field_at(line, 3);
-        if st == "ok" { n_ok = n_ok + 1; }
-        else if st == "updated" { n_up = n_up + 1; }
+        if st == "updated" { n_up = n_up + 1; }
         else if st == "stale" { n_st = n_st + 1; }
         else if st == "fail" { n_fail = n_fail + 1; }
-        else { n_skip = n_skip + 1; }
-        println(repo + "  " + bin + "  " + st + "  " + det);
+        let mut extra: String = "";
+        if st == "fail" || st == "skip" {
+            if det != "" { extra = "  " + det; }
+        }
+        println("  " + pad_right(repo, 8) + status_word(st) + extra);
     }
-    println("current " + int_to_str(n_ok) + "  updated " + int_to_str(n_up) + "  stale " + int_to_str(n_st) + "  skipped " + int_to_str(n_skip) + "  failed " + int_to_str(n_fail));
-    if n_fail > 0 { println("ERROR: one or more components failed to fetch or verify"); return 1; }
-    if mode != "apply" && n_st > 0 { println("STALE: run `ooda update` (not the installer) to refresh"); return 1; }
-    if mode == "apply" { println("=== ooda update complete ==="); }
-    else { println("OK: hashes match GitHub latest"); }
+    print_closer(mode, n_up, n_st, n_fail);
+    if n_fail > 0 { return 1; }
+    if mode != "apply" && n_st > 0 { return 1; }
     return 0;
 }

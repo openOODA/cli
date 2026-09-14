@@ -23,7 +23,7 @@ import "context.oo";
 import "token.oo";
 
 fn cli_version() -> String {
-    return "v0.1.6";
+    return "v0.1.7";
 }
 
 fn print_help() {
@@ -36,7 +36,7 @@ fn print_help() {
     println("  test <file>       build and run a .oo test");
     println("  fmt <file>        reformat a .oo file in place");
     println("  install [--to P]  install the cli pack to a prefix");
-    println("  update            refresh stale binaries from GitHub latest (hash check)");
+    println("  update            catch up stale binaries (sha256 vs GitHub)");
     println("                    --check  --dry-run  --bootstrap  --installer PATH");
     println("  upgrade           alias of update");
     println("  init [name]       scaffold a new project layout");
