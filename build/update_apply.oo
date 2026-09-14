@@ -7,7 +7,7 @@
 // Beats:
 //   1. Probe OS/ARCH and walk ooda/cli/tui/oodac/oodar/opm/lsp/mcp/bb.
 //   2. Match local sha256 to the latest sidecar; skip current, fetch stale.
-//   3. Write a tab report; copy tui to ooda-tui after a tui replace.
+//   3. Write a tab report; tty spinner ticks each repo while curl runs.
 
 fn int_to_str(n: Int) -> String {
     if n <= 0 { return "0"; }
@@ -43,13 +43,23 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "OS=$(uname -s); case \"$OS\" in Linux) OS=linux;; Darwin) OS=darwin;; *) OS=linux;; esac\n" +
         "ARCH=$(uname -m); case \"$ARCH\" in x86_64|amd64) ARCH=x86_64;; aarch64|arm64) ARCH=arm64;; *) ARCH=x86_64;; esac\n" +
         "GH=https://github.com/openOODA\n" +
+        "TTY=0; [ -t 2 ] && TTY=1\n" +
+        "FR=\"|/-\\\\\"\n" +
+        "TN=0\n" +
+        "tick() { [ \"$TTY\" = 1 ] || return 0; TN=$((TN+1)); local n p; n=${#FR}; p=$((TN % n)); printf '\\r  %s  %s   ' \"${FR:$p:1}\" \"$1\" >&2; }\n" +
+        "spin() { local p=$1 m=$2; if [ \"$TTY\" = 1 ]; then while kill -0 \"$p\" 2>/dev/null; do tick \"$m\"; sleep 0.08; done; fi; wait \"$p\"; return $?; }\n" +
+        "wipe() { [ \"$TTY\" = 1 ] && printf '\\r\\033[K' >&2 || true; }\n" +
+        "trap wipe EXIT\n" +
         "sha_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum \"$1\" | awk '{print $1}'; else shasum -a 256 \"$1\" | awk '{print $1}'; fi; }\n" +
         "printf 'repo\\tbin\\tstatus\\tdetail\\n' > \"$RPT\"\n" +
         "while IFS=' ' read -r repo dest stem; do\n" +
         "  [ -z \"$repo\" ] && continue\n" +
         "  path=\"$BIN/$dest\"\n" +
         "  url=\"$GH/$repo/releases/latest/download/${stem}-${OS}-${ARCH}\"\n" +
-        "  rsha=$(curl -fsSL --connect-timeout 10 -m 20 \"${url}.sha256\" 2>/dev/null | awk '{print $1}' || true)\n" +
+        "  sf=$(mktemp); curl -fsSL --connect-timeout 10 -m 20 \"${url}.sha256\" -o \"$sf\" 2>/dev/null &\n" +
+        "  spin $! \"$repo\"; crc=$?\n" +
+        "  rsha=; [ $crc -eq 0 ] && [ -s \"$sf\" ] && rsha=$(awk '{print $1}' \"$sf\")\n" +
+        "  rm -f \"$sf\"\n" +
         "  if [ -z \"$rsha\" ]; then\n" +
         "    if [ ! -e \"$path\" ]; then printf '%s\\t%s\\tskip\\tno-release\\n' \"$repo\" \"$path\" >> \"$RPT\"\n" +
         "    else printf '%s\\t%s\\tfail\\tno-sha\\n' \"$repo\" \"$path\" >> \"$RPT\"; fi\n" +
@@ -63,9 +73,9 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue\n" +
         "  fi\n" +
         "  if [ \"$MODE\" != \"apply\" ]; then printf '%s\\t%s\\tstale\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"; continue; fi\n" +
-        "  echo \"  fetching $repo\" >&2\n" +
-        "  tmp=$(mktemp)\n" +
-        "  if ! curl -fsSL --connect-timeout 10 -m 90 \"$url\" -o \"$tmp\"; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tdownload\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
+        "  tmp=$(mktemp); curl -fsSL --connect-timeout 10 -m 90 \"$url\" -o \"$tmp\" &\n" +
+        "  spin $! \"fetch $repo\"\n" +
+        "  if [ $? -ne 0 ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tdownload\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
         "  gsha=$(sha_of \"$tmp\")\n" +
         "  if [ \"$gsha\" != \"$rsha\" ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tsha-mismatch\\n' \"$repo\" \"$path\" >> \"$RPT\"; continue; fi\n" +
         "  chmod +x \"$tmp\" 2>/dev/null || true\n" +
@@ -86,9 +96,12 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "COMPS\n" +
         "STD=\"$PREFIX/std\"\n" +
         "if [ -d \"$STD/.git\" ] && [ \"$MODE\" = \"apply\" ]; then\n" +
-        "  if git -C \"$STD\" pull --ff-only --quiet 2>/dev/null; then printf 'std\\t%s\\tupdated\\tpull\\n' \"$STD\" >> \"$RPT\"\n" +
+        "  git -C \"$STD\" pull --ff-only --quiet 2>/dev/null &\n" +
+        "  spin $! std\n" +
+        "  if [ $? -eq 0 ]; then printf 'std\\t%s\\tupdated\\tpull\\n' \"$STD\" >> \"$RPT\"\n" +
         "  else printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
         "elif [ -d \"$STD\" ]; then printf 'std\\t%s\\tok\\tpresent\\n' \"$STD\" >> \"$RPT\"; fi\n" +
+        "wipe\n" +
         "exit 0\n";
 }
 

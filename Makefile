@@ -1,4 +1,4 @@
-# cli v0.1.7 Makefile
+# cli v0.1.8 Makefile
 #
 # Build and verify the trimmed language CLI driver.
 #
