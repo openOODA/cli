@@ -36,8 +36,8 @@ cli help                      # print usage
 ## Where each verb came from
 
 `cli` is the trimmed surface of the legacy `ooda` binary. The full
-redistribution is documented in `openOODA/audit/cli_split_2026_09_13.oot`
-once Phase 8 lands. Quick map:
+redistribution is documented in `openOODA/audit/cli_split_2026_09_13.oot`.
+Quick map:
 
 | Legacy `ooda <sub>` | New home |
 |---|---|
@@ -54,8 +54,7 @@ once Phase 8 lands. Quick map:
 ## Build from source
 
 ```sh
-export OODA_COMPILER="$HOME/.openooda/bin/oodac"
-ooda build main.oo -o dist/cli
+make build
 ```
 
 ## The Polyrepo

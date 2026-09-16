@@ -1,0 +1,28 @@
+// # cli unknown-sub Probe — Exit 2
+//
+// Logline: Fail closed if an unknown subcommand does not exit 2.
+//
+// Setup: ProcessCap. sys_exec_wait of the current cli binary. No oodac backend.
+//
+// Beats:
+//   1. cli not-a-verb exits 2.
+//   2. r.val is the wait status even on Err (nonzero).
+
+fn probe_unknown_wait_status(r: Result[Int, String]) -> Int {
+    if r.is_ok() { return r.val; }
+    let why: String = match r { Ok(_) => "", Err(e) => e };
+    if str_contains(why, "nonzero") { return r.val; }
+    return 1;
+}
+
+pub fn probe_unknown(p: &ProcessCap, bin: String) -> Result[Int, String] {
+    let mut argv: List[String] = list_new();
+    argv = list_push(argv, "not-a-verb");
+    let r: Result[Int, String] = sys_exec_wait(p, bin, argv);
+    let code: Int = probe_unknown_wait_status(r);
+    if code != 2 {
+        return Err("unknown sub must exit 2, got " + code.to_string());
+    }
+    println("probe: unknown-sub ok");
+    return Ok(0);
+}

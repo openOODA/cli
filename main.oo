@@ -2,15 +2,13 @@
 //
 // Logline: Parse argv and dispatch to the 4 in-process subdirs. The 12 verbs replace the language surface of legacy ooda/main.oo.
 //
-// Setup: Pre-pass handles --help and --version before any validation. Errors fire BEFORE env validation so users get the right message.
+// Setup: Pre-pass handles --help and --version before dispatch. Missing subcommand exits 2.
 //
 // Beats:
 //   1. Pre-pass --help / --version (no env needed).
-//   2. Validate argv shape: unknown flag exits 2; missing arg exits 2.
-//   3. Read OODACODEX under EnvCap.
-//   4. Dispatch argv[0] to the matching handler. Phase 3 wires fix/fmt/context. Phase 5+ wires token.
+//   2. Missing argv prints help and exits 2.
+//   3. Dispatch argv[0] to the matching in-process handler.
 
-import "build/find_compiler.oo";
 import "build/host_build.oo";
 import "build/test.oo";
 import "build/install.oo";
@@ -48,12 +46,6 @@ fn print_help() {
     println("  help              print this message");
 }
 
-fn stub(name: String, args: List[String]) -> Result[Int, String] {
-    let n: Int = list_len(args);
-    println("cli " + name + ": stub (Phase 5+ wires the real handler)");
-    return Ok(0);
-}
-
 fn validate_argv(args: List[String]) -> Result[String, String] {
     let n: Int = list_len(args);
     if n < 1 {
@@ -77,11 +69,15 @@ fn validate_argv(args: List[String]) -> Result[String, String] {
 }
 
 pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap, env: &EnvCap, time: &TimeCap, fs_w: &FsWriteCap, alloc: &AllocCap, thread: &ThreadCap, args: List[String]) -> Result[Int, String] {
-    let _ = validate_argv(args);
+    let pre: Result[String, String] = validate_argv(args);
     let n: Int = list_len(args);
     if n < 1 {
         process_exit(2);
         return Err("cli: missing subcommand");
+    }
+    let kind: String = match pre { Ok(s) => s, Err(_) => "validated" };
+    if kind == "showed-help" || kind == "showed-version" {
+        return Ok(0);
     }
     let sub: String = list_get(args, 0);
     let rest: List[String] = list_slice(args, 1, n);

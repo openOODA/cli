@@ -6,12 +6,20 @@
 //
 // Beats:
 //   1. Parse target, backend, optimization, shared, LTO, and sanitizer flags for build commands.
-//   2. Run builds to .ooda-cache/run and execs the binary (oodac has no run verb).
-//   3. Dispatch invocations to oodac compiler binaries.
+//   2. Native omits --backend (LLVM default). Residual wasm/x86/aarch64/c exit 2.
+//   3. Run builds to .ooda-cache/run and execs the binary (oodac has no run verb).
 
 import "host_run.oo";
 import "std/fs/os/fs.oo";
 import "std/fs/file/path.oo";
+
+fn backend_or_residual(kind: String, target: String) -> String {
+    if target == "native" || target == "" { return ""; }
+    if target == "llvm" || target == "elf" { return target; }
+    println("ERR\t" + kind + "\tresidual target: " + target);
+    process_exit(2);
+    return "";
+}
 
 pub fn run_oodac_build(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: &EnvCap, bargs: List[String]) {
     if list_len(bargs) < 1 { println("cli build: missing file"); process_exit(2); }
@@ -30,7 +38,7 @@ pub fn run_oodac_build(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: 
         let a: String = list_get(bargs, i);
         if a == "--shared" {
             shared = true;
-        } else if a == "--target" {
+        } else if a == "--target" || a == "--backend" {
             i = i + 1;
             if i < list_len(bargs) { target = list_get(bargs, i); }
         } else if a == "-o" {
@@ -78,11 +86,12 @@ pub fn run_oodac_build(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: 
     }
     if file == "" { println("cli build: missing file"); process_exit(2); }
     if !path_exists(fr, file) { println("ERR\tbuild\tunreadable file: " + file); process_exit(2); }
-    let mut backend: String = "c";
-    if target == "llvm" || target == "aarch64" || target == "x86_64-elf" || target == "wasm" || target == "wasm-gc" || target == "wasm-linear" || target == "wasm-dual" || target == "x86" { backend = target; }
+    let backend: String = backend_or_residual("build", target);
     let mut argv: List[String] = list_new();
-    argv = list_push(argv, "--backend");
-    argv = list_push(argv, backend);
+    if backend != "" {
+        argv = list_push(argv, "--backend");
+        argv = list_push(argv, backend);
+    }
     if opt_level != "" { argv = list_push(argv, opt_level); }
     if lto { argv = list_push(argv, "--lto"); }
     if release { argv = list_push(argv, "--release"); }
@@ -117,7 +126,7 @@ pub fn run_oodac_run(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: &E
         if a == "--engine" {
             i = i + 1;
             if i < list_len(rargs) { engine = list_get(rargs, i); }
-        } else if a == "--target" {
+        } else if a == "--target" || a == "--backend" {
             i = i + 1;
             if i < list_len(rargs) { target = list_get(rargs, i); }
         } else if a == "-O0" || a == "-O1" || a == "-O2" || a == "-O3" || a == "-Oz" {
@@ -132,10 +141,12 @@ pub fn run_oodac_run(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: &E
         } else if a == "--release" {
             release = true;
             target = "llvm";
-        } else if a != "--" {
-            if str_slice(a, 0, 1) != "-" {
-                if path == "" { path = a; }
-            }
+        } else if a == "--" {
+        } else if str_slice(a, 0, 1) == "-" {
+            println("ERR\trun\tunknown flag: " + a);
+            process_exit(2);
+        } else {
+            if path == "" { path = a; }
         }
         i = i + 1;
     }
@@ -151,11 +162,12 @@ pub fn run_oodac_run(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: &E
         println("ERR\trun\tunreadable file: " + path);
         process_exit(2);
     }
-    let mut backend: String = "c";
-    if target == "llvm" || target == "wasm" || target == "wasm-gc" || target == "wasm-linear" || target == "wasm-dual" || target == "x86_64-elf" || target == "aarch64" { backend = target; }
+    let backend: String = backend_or_residual("run", target);
     let mut bargv: List[String] = list_new();
-    bargv = list_push(bargv, "--backend");
-    bargv = list_push(bargv, backend);
+    if backend != "" {
+        bargv = list_push(bargv, "--backend");
+        bargv = list_push(bargv, backend);
+    }
     if opt_level != "" { bargv = list_push(bargv, opt_level); }
     if lto { bargv = list_push(bargv, "--lto"); }
     if release { bargv = list_push(bargv, "--release"); }
@@ -168,10 +180,11 @@ pub fn run_oodac_run(fr: &FsReadCap, fw: &FsWriteCap, proc: &ProcessCap, env: &E
     if mk.is_err() { println("ERR\trun\tmkdir failed"); process_exit(1); }
     let bcode: Int = oodac_build_wait(fr, proc, env, bargv);
     if bcode != 0 { process_exit(bcode); }
-    let mut xargv: List[String] = list_new();
-    xargv = list_push(xargv, out_bin);
+    let xargv: List[String] = list_new();
     let r: Result[Int, String] = sys_exec_wait(proc, out_bin, xargv);
-    if r.is_err() { println("ERR\trun\texec failed"); process_exit(1); }
-    let code: Int = match r { Ok(c) => c, Err(_) => 1 };
-    process_exit(code);
+    if r.is_ok() { process_exit(r.val); }
+    let why: String = match r { Ok(_) => "", Err(e) => e };
+    if str_contains(why, "nonzero") { process_exit(r.val); }
+    println("ERR\trun\texec failed");
+    process_exit(1);
 }

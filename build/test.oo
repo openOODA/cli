@@ -11,7 +11,6 @@
 //   4. Default dispatch — build to a unique .ooda-cache/test-<epoch_ms>.oo.bin and run the binary (oodac has no run verb).
 //   5. Emit real JSON when --json is set; exit 0 only on actual pass.
 
-import "find_compiler.oo";
 import "host_run.oo";
 import "std/fs/os/fs.oo";
 
@@ -33,12 +32,20 @@ fn json_escape(s: String) -> String {
 }
 
 fn run_oodac_test_real(fr: &FsReadCap, proc: &ProcessCap, env: &EnvCap, path: String, out_bin: String) -> Bool {
-    let oodac: String = find_oodac(fr, env);
-    refuse_cli(proc, oodac);
-    let b: Result[String, String] = sys_exec(proc, oodac, "build", "--backend", "c", path, "-o", out_bin);
-    if b.is_err() { return false; }
-    let r: Result[String, String] = sys_exec(proc, out_bin);
-    return r.is_ok();
+    let mut bargv: List[String] = list_new();
+    bargv = list_push(bargv, "build");
+    bargv = list_push(bargv, path);
+    bargv = list_push(bargv, "-o");
+    bargv = list_push(bargv, out_bin);
+    let bcode: Int = oodac_build_wait(fr, proc, env, bargv);
+    if bcode != 0 { return false; }
+    let xargv: List[String] = list_new();
+    let r: Result[Int, String] = sys_exec_wait(proc, out_bin, xargv);
+    if r.is_ok() { return true; }
+    let why: String = match r { Ok(_) => "", Err(e) => e };
+    if str_contains(why, "nonzero") { return false; }
+    println("ERR\ttest\texec failed");
+    return false;
 }
 
 pub fn test_argv_file(args: List[String]) -> String {

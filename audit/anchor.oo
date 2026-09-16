@@ -1,11 +1,8 @@
 // # openOODA CLI Audit — Anchor for Agents
 //
-// Logline: Audit placeholder. Phase 8 lands cli_split_2026_09_13.oot here with the full migration map.
+// Logline: CLI audit notes. The 8-phase split record is openOODA/audit/cli_split_2026_09_13.oot.
 //
-// Setup: Single anchor until Phase 8. Then cli_split_2026_09_13.oot joins the cross-repo audit log under openOODA/audit/.
+// Setup: Per-PR handoff notes land in .agents/ (not audit/).
 //
 // Beats:
-//   1. The 8-phase migration audit lands here at Phase 8.
-//   2. Per-PR handoff notes land in .agents/ (not audit/).
-
-// Phase 1 placeholder. No audit files yet.
+//   1. Migration map lives in openOODA/audit/cli_split_2026_09_13.oot.

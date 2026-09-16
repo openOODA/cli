@@ -1,0 +1,23 @@
+// # cli version Probe — --version Contract
+//
+// Logline: Fail closed if cli --version is missing or is not 'cli v'.
+//
+// Setup: ProcessCap. sys_exec of the current cli binary. No oodac backend.
+//
+// Beats:
+//   1. cli --version exits 0.
+//   2. Stdout starts with 'cli v'.
+
+pub fn probe_version(p: &ProcessCap, bin: String) -> Result[Int, String] {
+    let r: Result[String, String] = sys_exec(p, bin, "--version");
+    if r.is_err() {
+        let e: String = match r { Ok(_) => "", Err(m) => m };
+        return Err("cli --version failed: " + e);
+    }
+    let out: String = match r { Ok(s) => s, Err(_) => "" };
+    if !str_contains(out, "cli v") {
+        return Err("version stdout missing 'cli v': " + out);
+    }
+    println("probe: version ok");
+    return Ok(0);
+}

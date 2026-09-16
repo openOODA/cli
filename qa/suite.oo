@@ -1,0 +1,79 @@
+// # cli QA Suite — Help, Version, Unknown Sub, Build
+//
+// Logline: Run help/version/unknown-sub/build probes twice against the current cli binary.
+//
+// Setup: ProcessCap sys_exec. FsReadCap+EnvCap resolve dist/cli or OODA_COMPILER sibling.
+//
+// Beats:
+//   1. Resolve dist/cli, then the cli next to OODA_COMPILER.
+//   2. Run each probe twice. Fail closed on the first Err.
+
+import "std/fs/process/env.oo";
+import "probe_help.oo";
+import "probe_version.oo";
+import "probe_unknown.oo";
+import "probe_build.oo";
+
+fn sibling_cli(oodac: String) -> String {
+    let n: Int = chars_len(oodac);
+    let mut slash: Int = 0 - 1;
+    let mut i: Int = 0;
+    while i < n {
+        if str_slice(oodac, i, i + 1) == "/" { slash = i; }
+        i = i + 1;
+    }
+    if slash < 0 { return ""; }
+    return str_slice(oodac, 0, slash) + "/cli";
+}
+
+fn find_cli(fs: &FsReadCap, env: &EnvCap) -> String {
+    if path_exists(fs, "dist/cli") { return "dist/cli"; }
+    if path_exists(fs, "dist/cli-linux-x86_64") { return "dist/cli-linux-x86_64"; }
+    let cr: Result[String, String] = env_get(env, "OODA_COMPILER");
+    let oc: String = match cr { Ok(s) => s, Err(_) => "" };
+    if oc != "" {
+        let p: String = sibling_cli(oc);
+        if p != "" && path_exists(fs, p) { return p; }
+    }
+    let tr: Result[String, String] = env_get(env, "OODA_TOOLCHAIN");
+    let th: String = match tr { Ok(s) => s, Err(_) => "" };
+    if th != "" {
+        let p: String = th + "/bin/cli";
+        if path_exists(fs, p) { return p; }
+    }
+    return "";
+}
+
+fn run_twice(a: Result[Int, String], b: Result[Int, String]) -> Result[Int, String] {
+    if a.is_err() { return a; }
+    if b.is_err() { return b; }
+    return Ok(0);
+}
+
+pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) -> Result[Int, String] {
+    let _n: Int = list_len(args);
+    let bin: String = find_cli(fs_r, env);
+    if bin == "" {
+        return Err("no cli binary (dist/cli or OODA_COMPILER sibling)");
+    }
+    println("  cli binary: " + bin);
+
+    println("  Running qa/probe_help.oo");
+    let h: Result[Int, String] = run_twice(probe_help(p, bin), probe_help(p, bin));
+    if h.is_err() { return h; }
+
+    println("  Running qa/probe_version.oo");
+    let v: Result[Int, String] = run_twice(probe_version(p, bin), probe_version(p, bin));
+    if v.is_err() { return v; }
+
+    println("  Running qa/probe_unknown.oo");
+    let u: Result[Int, String] = run_twice(probe_unknown(p, bin), probe_unknown(p, bin));
+    if u.is_err() { return u; }
+
+    println("  Running qa/probe_build.oo");
+    let b: Result[Int, String] = run_twice(probe_build(p, fs_r, bin), probe_build(p, fs_r, bin));
+    if b.is_err() { return b; }
+
+    println("cli test suite: ALL PROBES PASSED (double-run identical)");
+    return Ok(0);
+}

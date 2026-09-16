@@ -37,11 +37,11 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq gcc
+          sudo apt-get install -y -qq gcc clang
           mkdir -p "$HOME/.openooda/bin" "$HOME/.openooda/lib"
           GH=https://github.com/openOODA
           curl -fsSL -o "$HOME/.openooda/bin/oodac" \
-            "$GH/oodac/releases/download/v0.2.66/oodac-linux-x86_64"
+            "$GH/oodac/releases/download/v0.2.99/oodac-linux-x86_64"
           chmod +x "$HOME/.openooda/bin/oodac"
           curl -fsSL -o "$HOME/.openooda/lib/liboodar.a" \
             "$GH/oodar/releases/latest/download/liboodar.a-linux-x86_64"
@@ -123,7 +123,7 @@ jobs:
           unset OODA_FS_READDIR OODA_FS_WRITEDIR || true
           export OODA_NO_JAIL=1
           mkdir -p dist .ooda-cache/ooda-tmp
-          "$OODA_COMPILER" build --backend c main.oo -o dist/cli
+          "$OODA_COMPILER" build main.oo -o dist/cli
           chmod +x dist/cli
           cp -a dist/cli dist/cli-linux-x86_64
           sha256sum dist/cli-linux-x86_64 | awk '{print $1}' > dist/cli-linux-x86_64.sha256
@@ -145,6 +145,20 @@ jobs:
           test "$rc" -eq 2
           test "$urc" -eq 2
           echo "PASS: smoke"
+
+      - name: QA suite
+        working-directory: cli
+        env:
+          OO_LIST_AMBIENT_QUOTA: "1073741824"
+        run: |
+          set -euo pipefail
+          export OODACODEX="$HOME/.openooda/northstar.oot"
+          export OODA_COMPILER="$HOME/.openooda/bin/oodac"
+          export OODA_STD="$GITHUB_WORKSPACE/std"
+          unset OODA_FS_READDIR OODA_FS_WRITEDIR || true
+          export OODA_NO_JAIL=1
+          ./dist/cli qa
+          echo "PASS: qa suite"
 
       - name: Landlock-update-bypass sentinel
         working-directory: cli

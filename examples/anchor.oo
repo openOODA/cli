@@ -5,8 +5,5 @@
 // Setup: Each example is a runnable shell command or .oo snippet. They double as smoke tests.
 //
 // Beats:
-//   1. hello_cli.oo — minimal `cli --help` smoke test.
-//   2. install_to_tmp.oo — install to a /tmp prefix and verify the binary exists.
-//   3. fix_safe_mode.oo — `cli fix --dry-run` on a known-broken file.
-//
-// Examples land as sibling files. Do not import missing placeholders.
+//   1. hello / install / fix examples belong here as sibling files.
+//   2. Do not import missing placeholders.

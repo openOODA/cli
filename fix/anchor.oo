@@ -7,9 +7,7 @@
 // Beats:
 //   1. fix.oo — entry point for `cli fix <file> --yes`. Drives the check-apply loop.
 //   2. Patch surface: apply, must, imp, text — apply text-level edits.
-//   3. Diagnostic classifier: diag.oo — map oodac check output to ec, etc, eparse, eimp, emust.
-//
-// Phase 1 placeholder. Phase 3 fills in the real handlers from ooda/fix/.
+//   3. Diagnostic classifier: diag.oo — map oodac check output to ecap, etc, eparse, eimp, emust.
 
 import "fix.oo";
 import "apply.oo";

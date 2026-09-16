@@ -1,0 +1,63 @@
+// # cli build Probe — LLVM Default, Residual Backends
+//
+// Logline: Fail closed if native build forwards a C backend, or residual wasm/x86/aarch64/c do not exit 2.
+//
+// Setup: FsReadCap reads host_build.oo. ProcessCap sys_exec_wait of the current cli binary.
+//
+// Beats:
+//   1. host_build.oo omits --backend for native (empty default, not c).
+//   2. cli build --target wasm|x86|aarch64|c and --backend c exit 2.
+
+fn probe_build_wait_status(r: Result[Int, String]) -> Int {
+    if r.is_ok() { return r.val; }
+    let why: String = match r { Ok(_) => "", Err(e) => e };
+    if str_contains(why, "nonzero") { return r.val; }
+    return 1;
+}
+
+fn expect_residual(p: &ProcessCap, bin: String, flag: String, val: String) -> Result[Int, String] {
+    let mut argv: List[String] = list_new();
+    argv = list_push(argv, "build");
+    argv = list_push(argv, flag);
+    argv = list_push(argv, val);
+    argv = list_push(argv, "qa/probe_help.oo");
+    let r: Result[Int, String] = sys_exec_wait(p, bin, argv);
+    let code: Int = probe_build_wait_status(r);
+    if code != 2 {
+        return Err("build " + flag + " " + val + " must exit 2, got " + code.to_string());
+    }
+    return Ok(0);
+}
+
+pub fn probe_build(p: &ProcessCap, fs: &FsReadCap, bin: String) -> Result[Int, String] {
+    let rr: Result[String, String] = read_file(fs, "build/host_build.oo");
+    if rr.is_err() { return Err("unreadable build/host_build.oo"); }
+    let src: String = match rr { Ok(s) => s, Err(_) => "" };
+    if str_contains(src, "backend: String = \"c\"") {
+        return Err("host_build must not default backend to c");
+    }
+    if !str_contains(src, "residual target") {
+        return Err("host_build must residual-exit unknown targets");
+    }
+    if !str_contains(src, "if backend != \"\"") {
+        return Err("host_build must omit --backend when native");
+    }
+
+    let mut names: List[String] = list_new();
+    names = list_push(names, "wasm");
+    names = list_push(names, "x86");
+    names = list_push(names, "aarch64");
+    names = list_push(names, "c");
+    let mut i: Int = 0;
+    while i < list_len(names) {
+        let n: String = list_get(names, i);
+        let tr: Result[Int, String] = expect_residual(p, bin, "--target", n);
+        if tr.is_err() { return tr; }
+        i = i + 1;
+    }
+    let br: Result[Int, String] = expect_residual(p, bin, "--backend", "c");
+    if br.is_err() { return br; }
+
+    println("probe: build residual ok");
+    return Ok(0);
+}

@@ -3,20 +3,19 @@
 # Build and verify the trimmed language CLI driver.
 #
 # Usage:
-#   make build       - compile main.oo to dist/cli (Phase 2+)
-#   make test        - run the binary's --help and --version (Phase 2+)
-#   make parity      - verify sha256 matches dist/cli (Phase 2+)
+#   make build       - compile main.oo to dist/cli
+#   make test        - run --help, --version, and qa/suite.oo
+#   make parity      - verify sha256 matches dist/cli
 #   make line-cap    - enforce 256-line cap on every .oo and .oot
 #   make file-law    - reject forbidden file extensions
 #   make academy     - verify every .oo has the 4-element Academy header
 #   make verify      - run all of the above checks
-#   make install     - copy dist/cli to ~/.openooda/bin/ (Phase 2+)
+#   make install     - copy dist/cli to ~/.openooda/bin/
 #   make clean       - remove build artifacts
-#   make all         - build + verify + test
+#   make all         - run verify (line-cap, file-law, academy)
 
-# LLVM emit of this graph currently fails. Prefer a compiler that still
-# has --backend c (oodac_bin.core, or oodac v0.2.66).
-OODA_COMPILER ?= $(firstword $(wildcard $(HOME)/.openooda/bin/oodac_bin.core $(HOME)/.openooda/bin/oodac))
+# Product oodac build is LLVM IR + clang (omit --backend). Residual wasm/x86/aarch64/c exit 2.
+OODA_COMPILER ?= $(firstword $(wildcard $(HOME)/.openooda/bin/oodac $(CURDIR)/../oodac/bin/oodac))
 OODACODEX ?= $(HOME)/.openooda/northstar.oot
 BIN := dist/cli
 
@@ -26,7 +25,7 @@ all: verify
 
 build:
 	@mkdir -p dist .ooda-cache/ooda-tmp
-	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 $(OODA_COMPILER) build --backend c main.oo -o $(BIN)
+	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 $(OODA_COMPILER) build main.oo -o $(BIN)
 	@chmod +x $(BIN)
 	@cp -a $(BIN) dist/cli-linux-x86_64
 	@echo "built $(BIN)"
@@ -34,6 +33,7 @@ build:
 test: build
 	./$(BIN) --help
 	./$(BIN) version
+	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 ./$(BIN) qa
 
 parity: build
 	@sum=$$(sha256sum $(BIN) | awk '{print $$1}'); echo $$sum; test -n "$$sum"

@@ -8,7 +8,7 @@
 //   1. Prefer OODA_COMPILER. Fail closed when nothing resolves.
 //   2. Fall back to OODA_TOOLCHAIN/bin/oodac.
 //   3. Fall back to HOME/.openooda/bin/oodac.
-//   4. Reject a path whose basename is the product CLI (`ooda`).
+//   4. Reject a path whose basename is the product CLI (`ooda` or `cli`).
 
 import "std/fs/file/path.oo";
 import "std/fs/process/env.oo";
@@ -16,7 +16,8 @@ import "std/fs/process/env.oo";
 fn take_compiler(fs: &FsReadCap, path: String) -> String {
     if path == "" { return ""; }
     if !path_exists(fs, path) { return ""; }
-    if path_basename(path) == "ooda" { return ""; }
+    let base: String = path_basename(path);
+    if base == "ooda" || base == "cli" { return ""; }
     return path;
 }
 

@@ -6,7 +6,5 @@
 //
 // Beats:
 //   1. fmt.oo reformats .oo source files in place under FsReadCap+FsWriteCap.
-//
-// Phase 1 placeholder. Phase 3 fills in the real handler from ooda/fmt/.
 
 import "fmt.oo";

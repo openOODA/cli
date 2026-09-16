@@ -1,0 +1,49 @@
+// # cli help Probe — 12 Verbs
+//
+// Logline: Fail closed if cli --help is missing or omits a language verb.
+//
+// Setup: ProcessCap. sys_exec of the current cli binary. No oodac backend.
+//
+// Beats:
+//   1. cli --help exits 0.
+//   2. Help lists the 12 language verbs.
+
+fn need_verb(out: String, verb: String) -> Result[Int, String] {
+    if !str_contains(out, "  " + verb) {
+        return Err("help missing verb: " + verb);
+    }
+    return Ok(0);
+}
+
+pub fn probe_help(p: &ProcessCap, bin: String) -> Result[Int, String] {
+    let r: Result[String, String] = sys_exec(p, bin, "--help");
+    if r.is_err() {
+        let e: String = match r { Ok(_) => "", Err(m) => m };
+        return Err("cli --help failed: " + e);
+    }
+    let out: String = match r { Ok(s) => s, Err(_) => "" };
+    if !str_contains(out, "usage: cli") {
+        return Err("help stdout missing 'usage: cli'");
+    }
+    let mut verbs: List[String] = list_new();
+    verbs = list_push(verbs, "build");
+    verbs = list_push(verbs, "run");
+    verbs = list_push(verbs, "test");
+    verbs = list_push(verbs, "fmt");
+    verbs = list_push(verbs, "install");
+    verbs = list_push(verbs, "update");
+    verbs = list_push(verbs, "init");
+    verbs = list_push(verbs, "qa");
+    verbs = list_push(verbs, "context");
+    verbs = list_push(verbs, "fix");
+    verbs = list_push(verbs, "token");
+    verbs = list_push(verbs, "version");
+    let mut i: Int = 0;
+    while i < list_len(verbs) {
+        let vr: Result[Int, String] = need_verb(out, list_get(verbs, i));
+        if vr.is_err() { return vr; }
+        i = i + 1;
+    }
+    println("probe: help ok");
+    return Ok(0);
+}

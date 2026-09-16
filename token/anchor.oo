@@ -1,10 +1,10 @@
 // # openOODA CLI Token — Anchor for Agents
 //
-// Logline: Token router. The 15 sub-cmds now live in ooda-tui/ as slash commands. cli/ forwards.
+// Logline: Token router. cli token <sub> forwards to ooda-tui --token <sub>.
 //
-// Setup: cli token <sub> prints a deprecation notice and exits 0 with the ooda-tui slash form.
+// Setup: spawn() runs ooda-tui. Args append after --token.
 //
 // Beats:
-//   1. token.oo is a 1-line router that prints the ooda-tui slash form.
+//   1. token.oo builds ["--token", <rest...>] and spawn("tui", ...).
 //
 // Forwarder is cli/token.oo, imported from main.oo.

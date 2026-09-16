@@ -186,6 +186,12 @@ pub fn run_ooda_install_cmd(fr: &FsReadCap, proc: &ProcessCap, env: &EnvCap, fw:
     install_link_or_copy(fr, fw, ooda_dst, bin_dir + "/oo");
     install_executable(proc, bin_dir + "/oo");
 
+    // Packs stage bin/ooda; copy bin/cli when the pack has it.
+    if path_exists(fr, from + "/bin/cli") {
+        install_copy_or_exit(fr, fw, from + "/bin/cli", bin_dir + "/cli", "Failed to install cli");
+        install_executable(proc, bin_dir + "/cli");
+    }
+
     install_tree_or_exit(fr, fw, from + "/std", ooda_home + "/std", "Failed to install std");
     if path_exists(fr, from + "/oodar") {
         install_tree_or_exit(fr, fw, from + "/oodar", ooda_home + "/oodar", "Failed to install oodar");

@@ -2,7 +2,7 @@
 //
 // Logline: Front door for the cli/ build-toolchain drivers and the project-init commands.
 //
-// Setup: find_compiler locates oodac; host_run/host_build drive oodac. context/health/test/install/gen/bench/init are user-facing.
+// Setup: find_compiler locates oodac; host_run/host_build drive oodac. test/install/update/qa/init are user-facing.
 //
 // Beats:
 //   1. Toolchain plumbing: find_compiler, host_run, host_build — spawn oodac with OODA_COMPILER.

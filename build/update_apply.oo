@@ -9,18 +9,6 @@
 //   2. Match local sha256 to the latest sidecar; skip current, fetch stale.
 //   3. TTY: hidden cursor, fixed columns, color status, digest and size.
 
-fn int_to_str(n: Int) -> String {
-    if n <= 0 { return "0"; }
-    let digits: String = "0123456789";
-    let mut v: Int = n;
-    let mut rev: String = "";
-    while v > 0 { let d: Int = v - (v / 10) * 10; rev = rev + char_at(digits, d); v = v / 10; }
-    let mut out: String = "";
-    let mut k: Int = chars_len(rev) - 1;
-    while k >= 0 { out = out + char_at(rev, k); k = k - 1; }
-    return out;
-}
-
 fn update_report_path() -> String {
     return "/tmp/.ooda-update-report.txt";
 }
