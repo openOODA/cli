@@ -1,6 +1,6 @@
 // # openOODA CLI Driver — Argv Router
 //
-// Logline: Parse argv and dispatch to the 4 in-process subdirs. The 12 verbs replace the language surface of legacy ooda/main.oo.
+// Logline: Parse argv and dispatch to the in-process subdirs. The verbs replace the language surface of legacy ooda/main.oo.
 //
 // Setup: Pre-pass handles --help and --version before dispatch. Missing subcommand exits 2.
 //
@@ -19,9 +19,10 @@ import "fix/fix.oo";
 import "fmt/fmt.oo";
 import "context.oo";
 import "token.oo";
+import "spec.oo";
 
 fn cli_version() -> String {
-    return "v0.1.10";
+    return "v0.1.14";
 }
 
 fn print_help() {
@@ -42,6 +43,7 @@ fn print_help() {
     println("  context [dir]     list .oo files under a directory");
     println("  fix <file>        auto-fix common compile errors");
     println("  token <sub>       LLM token telemetry (forwards to ooda-tui)");
+    println("  spec [file]       display language specification sheet");
     println("  version           print cli version");
     println("  help              print this message");
 }
@@ -119,6 +121,16 @@ pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap
         }
         let code: Int = match r { Ok(c) => c, Err(_) => 1 };
         return Ok(code);
+    }
+
+    if sub == "spec" {
+        let r: Result[Int, String] = run_cli_spec(fs_r, rest);
+        if r.is_err() {
+            let e: String = match r { Ok(_) => "", Err(m) => m };
+            process_exit(1);
+            return Err(e);
+        }
+        return Ok(0);
     }
 
     if sub == "version" || sub == "--version" || sub == "-v" {
