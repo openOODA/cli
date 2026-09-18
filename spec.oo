@@ -12,23 +12,74 @@
 
 import "std/fs/process/env.oo";
 
+fn path_parent_dir(path: String) -> String {
+    let n: Int = chars_len(path);
+    let mut slash: Int = 0 - 1;
+    let mut i: Int = 0;
+    while i < n {
+        if str_slice(path, i, i + 1) == "/" { slash = i; }
+        i = i + 1;
+    }
+    if slash <= 0 { return ""; }
+    return str_slice(path, 0, slash);
+}
+
 fn resolve_spec_path(fs_r: &FsReadCap, env: &EnvCap, args: List[String]) -> String {
+    let wd_res: Result[String, String] = env_get(env, "OODA_FS_WRITEDIR");
+    let wd: String = match wd_res { Ok(s) => s, Err(_) => "" };
+    let home_res: Result[String, String] = env_get(env, "HOME");
+    let home: String = match home_res { Ok(s) => s, Err(_) => "" };
+
     if list_len(args) > 0 {
         let custom: String = list_get(args, 0);
         if path_exists(fs_r, custom) { return custom; }
+        let clen: Int = chars_len(custom);
+        if clen >= 2 && str_slice(custom, 0, 2) == "~/" {
+            let rest: String = str_slice(custom, 1, clen);
+            if wd != "" && path_exists(fs_r, wd + rest) { return wd + rest; }
+            if home != "" && path_exists(fs_r, home + rest) { return home + rest; }
+        }
     }
+
     if path_exists(fs_r, "openOODA/spec.oot") { return "openOODA/spec.oot"; }
     if path_exists(fs_r, "spec.oot") { return "spec.oot"; }
     if path_exists(fs_r, "../openOODA/spec.oot") { return "../openOODA/spec.oot"; }
     if path_exists(fs_r, "../../openOODA/spec.oot") { return "../../openOODA/spec.oot"; }
+
+    let ooda_spec_env: Result[String, String] = env_get(env, "OODA_SPEC");
+    let ooda_spec: String = match ooda_spec_env { Ok(s) => s, Err(_) => "" };
+    if ooda_spec != "" && path_exists(fs_r, ooda_spec) { return ooda_spec; }
+
     let spec_env: Result[String, String] = env_get(env, "OODASPEC");
     let oodaspec: String = match spec_env { Ok(s) => s, Err(_) => "" };
     if oodaspec != "" && path_exists(fs_r, oodaspec) { return oodaspec; }
-    let home_res: Result[String, String] = env_get(env, "HOME");
-    let home: String = match home_res { Ok(s) => s, Err(_) => "" };
+
     if home != "" && path_exists(fs_r, home + "/.openooda/spec.oot") {
         return home + "/.openooda/spec.oot";
     }
+
+    let codex_res: Result[String, String] = env_get(env, "OODACODEX");
+    let codex: String = match codex_res { Ok(s) => s, Err(_) => "" };
+    if codex != "" {
+        let codex_dir: String = path_parent_dir(codex);
+        if codex_dir != "" && path_exists(fs_r, codex_dir + "/spec.oot") {
+            return codex_dir + "/spec.oot";
+        }
+    }
+
+    if wd != "" && path_exists(fs_r, wd + "/.openooda/spec.oot") {
+        return wd + "/.openooda/spec.oot";
+    }
+
+    let std_res: Result[String, String] = env_get(env, "OODA_STD_ROOT");
+    let std_root: String = match std_res { Ok(s) => s, Err(_) => "" };
+    if std_root != "" {
+        let std_dir: String = path_parent_dir(std_root);
+        if std_dir != "" && path_exists(fs_r, std_dir + "/spec.oot") {
+            return std_dir + "/spec.oot";
+        }
+    }
+
     if path_exists(fs_r, "~/.openooda/spec.oot") {
         return "~/.openooda/spec.oot";
     }

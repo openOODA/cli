@@ -1,4 +1,4 @@
-// # cli help Probe — 12 Verbs
+// # cli help Probe — 13 Verbs
 //
 // Logline: Fail closed if cli --help is missing or omits a language verb.
 //
@@ -6,7 +6,7 @@
 //
 // Beats:
 //   1. cli --help exits 0.
-//   2. Help lists the 12 language verbs.
+//   2. Help lists the 13 language verbs.
 
 fn need_verb(out: String, verb: String) -> Result[Int, String] {
     if !str_contains(out, "  " + verb) {
@@ -37,6 +37,7 @@ pub fn probe_help(p: &ProcessCap, bin: String) -> Result[Int, String] {
     verbs = list_push(verbs, "context");
     verbs = list_push(verbs, "fix");
     verbs = list_push(verbs, "token");
+    verbs = list_push(verbs, "spec");
     verbs = list_push(verbs, "version");
     let mut i: Int = 0;
     while i < list_len(verbs) {

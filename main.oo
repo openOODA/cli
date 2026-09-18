@@ -22,7 +22,7 @@ import "token.oo";
 import "spec.oo";
 
 fn cli_version() -> String {
-    return "v0.1.15";
+    return "v0.1.16";
 }
 
 fn print_help() {
