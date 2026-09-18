@@ -2,7 +2,7 @@
 //
 // Logline: Display the Tier A language specification sheet in the terminal.
 //
-// Setup: Multi-path resolution under FsReadCap. Resolves spec.oot from repo roots.
+// Setup: Multi-path resolution under FsReadCap and EnvCap. Resolves spec.oot from repo roots and user home.
 //
 // Beats:
 //   1. Resolve candidate paths for spec.oot.
@@ -10,7 +10,9 @@
 //   3. Stream content to terminal output.
 //   4. Return error if file is missing.
 
-fn resolve_spec_path(fs_r: &FsReadCap, args: List[String]) -> String {
+import "std/fs/process/env.oo";
+
+fn resolve_spec_path(fs_r: &FsReadCap, env: &EnvCap, args: List[String]) -> String {
     if list_len(args) > 0 {
         let custom: String = list_get(args, 0);
         if path_exists(fs_r, custom) { return custom; }
@@ -19,11 +21,22 @@ fn resolve_spec_path(fs_r: &FsReadCap, args: List[String]) -> String {
     if path_exists(fs_r, "spec.oot") { return "spec.oot"; }
     if path_exists(fs_r, "../openOODA/spec.oot") { return "../openOODA/spec.oot"; }
     if path_exists(fs_r, "../../openOODA/spec.oot") { return "../../openOODA/spec.oot"; }
+    let spec_env: Result[String, String] = env_get(env, "OODASPEC");
+    let oodaspec: String = match spec_env { Ok(s) => s, Err(_) => "" };
+    if oodaspec != "" && path_exists(fs_r, oodaspec) { return oodaspec; }
+    let home_res: Result[String, String] = env_get(env, "HOME");
+    let home: String = match home_res { Ok(s) => s, Err(_) => "" };
+    if home != "" && path_exists(fs_r, home + "/.openooda/spec.oot") {
+        return home + "/.openooda/spec.oot";
+    }
+    if path_exists(fs_r, "~/.openooda/spec.oot") {
+        return "~/.openooda/spec.oot";
+    }
     return "";
 }
 
-pub fn run_cli_spec(fs_r: &FsReadCap, args: List[String]) -> Result[Int, String] {
-    let path: String = resolve_spec_path(fs_r, args);
+pub fn run_cli_spec(fs_r: &FsReadCap, env: &EnvCap, args: List[String]) -> Result[Int, String] {
+    let path: String = resolve_spec_path(fs_r, env, args);
     if path == "" {
         println("cli spec: spec.oot not found");
         return Err("cli spec: spec.oot not found");

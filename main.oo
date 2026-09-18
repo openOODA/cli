@@ -22,7 +22,7 @@ import "token.oo";
 import "spec.oo";
 
 fn cli_version() -> String {
-    return "v0.1.14";
+    return "v0.1.15";
 }
 
 fn print_help() {
@@ -124,7 +124,7 @@ pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap
     }
 
     if sub == "spec" {
-        let r: Result[Int, String] = run_cli_spec(fs_r, rest);
+        let r: Result[Int, String] = run_cli_spec(fs_r, env, rest);
         if r.is_err() {
             let e: String = match r { Ok(_) => "", Err(m) => m };
             process_exit(1);

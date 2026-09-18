@@ -17,6 +17,7 @@
 # Product oodac build is LLVM IR + clang (omit --backend). Residual wasm/x86/aarch64/c exit 2.
 OODA_COMPILER ?= $(firstword $(wildcard $(HOME)/.openooda/bin/oodac $(CURDIR)/../oodac/bin/oodac))
 OODACODEX ?= $(HOME)/.openooda/northstar.oot
+OO_LIST_AMBIENT_QUOTA ?= 8589934592
 BIN := dist/cli
 
 .PHONY: all build test parity line-cap file-law academy verify install clean
@@ -25,7 +26,7 @@ all: verify
 
 build:
 	@mkdir -p dist .ooda-cache/ooda-tmp
-	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 $(OODA_COMPILER) build main.oo -o $(BIN)
+	OO_LIST_AMBIENT_QUOTA=$(OO_LIST_AMBIENT_QUOTA) OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 $(OODA_COMPILER) build main.oo -o $(BIN)
 	@chmod +x $(BIN)
 	@cp -a $(BIN) dist/cli-linux-x86_64
 	@echo "built $(BIN)"
@@ -33,7 +34,7 @@ build:
 test: build
 	./$(BIN) --help
 	./$(BIN) version
-	OO_LIST_AMBIENT_QUOTA=1073741824 OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 ./$(BIN) qa
+	OO_LIST_AMBIENT_QUOTA=$(OO_LIST_AMBIENT_QUOTA) OODACODEX=$(OODACODEX) OODA_COMPILER=$(OODA_COMPILER) OODA_NO_JAIL=1 ./$(BIN) qa
 
 parity: build
 	@sum=$$(sha256sum $(BIN) | awk '{print $$1}'); echo $$sum; test -n "$$sum"
