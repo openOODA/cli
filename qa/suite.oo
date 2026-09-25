@@ -13,6 +13,7 @@ import "probe_help.oo";
 import "probe_version.oo";
 import "probe_unknown.oo";
 import "probe_build.oo";
+import "probe_edge.oo";
 
 fn sibling_cli(oodac: String) -> String {
     let n: Int = chars_len(oodac);
@@ -73,6 +74,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     println("  Running qa/probe_build.oo");
     let b: Result[Int, String] = run_twice(probe_build(p, fs_r, bin), probe_build(p, fs_r, bin));
     if b.is_err() { return b; }
+
+    println("  Running qa/probe_edge.oo");
+    let e: Result[Int, String] = run_twice(probe_edge(p, bin), probe_edge(p, bin));
+    if e.is_err() { return e; }
 
     println("cli test suite: ALL PROBES PASSED (double-run identical)");
     return Ok(0);

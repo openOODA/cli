@@ -10,6 +10,7 @@
 //   3. probe_unknown.oo — `cli unknown-verb` exits 2.
 //   4. probe_build.oo — native omits --backend; residual wasm/x86/aarch64/c exit 2.
 //   5. suite.oo — runs those probes twice via sys_exec of dist/cli.
+//   10. probe_edge.oo — no-args/missing-file/unknown-flag exits; pre-pass wins; help alias parity.
 //   6. probe_line_cap.oo — every .oo file in cli/ is <= 256 lines. (later)
 //   7. probe_file_law.oo — no forbidden file types in cli/. (later)
 //   8. probe_academy.oo — every .oo file in cli/ has the 4-element Academy header. (later)

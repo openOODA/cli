@@ -1,0 +1,58 @@
+// # cli edge Probe — Argv Boundaries
+//
+// Logline: Fail closed if no-args, missing-file, junk-flag, or alias paths drift.
+//
+// Setup: ProcessCap. sys_exec_wait for exit codes, sys_exec for output.
+// No oodac backend.
+//
+// Beats:
+//   1. Bare cli (no args) exits 2.
+//   2. cli test without a file exits 2.
+//   3. cli --version with trailing junk still exits 0 (pre-pass wins).
+//   4. cli --frobnicate (unknown flag) exits 2.
+//   5. cli help and cli --help print identical output.
+
+fn probe_edge_wait(argv0: List[String], p: &ProcessCap, bin: String) -> Int {
+    let r: Result[Int, String] = sys_exec_wait(p, bin, argv0);
+    if r.is_ok() { return r.val; }
+    let why: String = match r { Ok(_) => "", Err(e) => e };
+    if str_contains(why, "nonzero") { return r.val; }
+    return 1;
+}
+
+fn probe_edge_argv1(a: String) -> List[String] {
+    let mut argv: List[String] = list_new();
+    argv = list_push(argv, a);
+    return argv;
+}
+
+pub fn probe_edge(p: &ProcessCap, bin: String) -> Result[Int, String] {
+    let bare: List[String] = list_new();
+    if probe_edge_wait(bare, p, bin) != 2 {
+        return Err("bare cli must exit 2");
+    }
+    if probe_edge_wait(probe_edge_argv1("test"), p, bin) != 2 {
+        return Err("cli test without file must exit 2");
+    }
+    let mut vj: List[String] = list_new();
+    vj = list_push(vj, "--version");
+    vj = list_push(vj, "junk");
+    if probe_edge_wait(vj, p, bin) != 0 {
+        return Err("cli --version junk must still exit 0");
+    }
+    if probe_edge_wait(probe_edge_argv1("--frobnicate"), p, bin) != 2 {
+        return Err("unknown flag must exit 2");
+    }
+    let h1: Result[String, String] = sys_exec(p, bin, "help");
+    let h2: Result[String, String] = sys_exec(p, bin, "--help");
+    if h1.is_err() || h2.is_err() {
+        return Err("help alias must exit 0");
+    }
+    let o1: String = match h1 { Ok(s) => s, Err(_) => "" };
+    let o2: String = match h2 { Ok(s) => s, Err(_) => "" };
+    if o1 != o2 {
+        return Err("help and --help outputs differ");
+    }
+    println("probe: edge ok");
+    return Ok(0);
+}
