@@ -5,7 +5,7 @@
 // Setup: ProcessCap runs bash; FsReadCap reads the report file. Mode is check, dry, or apply.
 //
 // Beats:
-//   1. Probe OS/ARCH and walk ooda/cli/tui/oodac/oodar/opm/lsp/mcp/bb.
+//   1. Probe OS/ARCH and walk ooda/cli/tui/oodac/oodar/opm/lsp/mcp.
 //   2. Match local sha256 to the latest sidecar; skip current, fetch stale.
 //   3. TTY: hidden cursor, fixed columns, color status, digest and size.
 
@@ -34,7 +34,7 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "TTY=0; [ -t 1 ] && TTY=1\n" +
         "ESC=$(printf '\\033')\n" +
         "if [ \"$TTY\" = 1 ]; then GRN=\"${ESC}[32m\"; YLW=\"${ESC}[33m\"; CYN=\"${ESC}[36m\"; RED=\"${ESC}[31m\"; DIM=\"${ESC}[2m\"; BLD=\"${ESC}[1m\"; RST=\"${ESC}[0m\"; HID=\"${ESC}[?25l\"; SHW=\"${ESC}[?25h\"; EL=\"${ESC}[K\"; else GRN=; YLW=; CYN=; RED=; DIM=; BLD=; RST=; HID=; SHW=; EL=; fi\n" +
-        "FR=\"|/-\\\\\"; TN=0; T0=$(date +%s); N_OK=0; N_ST=0; N_UP=0; N_FAIL=0; N_SKIP=0; IDX=0; TOTAL=9\n" +
+        "FR=\"|/-\\\\\"; TN=0; T0=$(date +%s); N_OK=0; N_ST=0; N_UP=0; N_FAIL=0; N_SKIP=0; IDX=0; TOTAL=8\n" +
         "elapsed() { echo $(( $(date +%s) - T0 )); }\n" +
         "finish() { printf '%s' \"$SHW\"; printf '\\r%s' \"$EL\"; }\n" +
         "trap finish EXIT\n" +
@@ -69,7 +69,6 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  [ -e \"$path\" ] && lsha=$(sha_of \"$path\")\n" +
         "  if [ \"$lsha\" = \"$rsha\" ]; then\n" +
         "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
-        "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"bb\" ]; then cp -f \"$path\" \"$BIN/blackbox\" 2>/dev/null || true; chmod +x \"$BIN/blackbox\" 2>/dev/null || true; fi\n" +
         "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"\n" +
         "    row \"$repo\" ok \"$rsha\" \"$by\" ''\n" +
         "    N_OK=$((N_OK+1)); continue\n" +
@@ -83,7 +82,6 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  chmod +x \"$tmp\" 2>/dev/null || true\n" +
         "  mv -f \"$tmp\" \"$path\"\n" +
         "  if [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
-        "  if [ \"$repo\" = \"bb\" ] && [ -e \"$path\" ]; then cp -f \"$path\" \"$BIN/blackbox\" 2>/dev/null || true; chmod +x \"$BIN/blackbox\" 2>/dev/null || true; fi\n" +
         "  by=$(bytes_of \"$path\")\n" +
         "  printf '%s\\t%s\\tupdated\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"\n" +
         "  row \"$repo\" updated \"$rsha\" \"$by\" ''\n" +
@@ -97,7 +95,6 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "opm opm opm\n" +
         "lsp lsp ooda-lsp\n" +
         "mcp mcp ooda-mcp\n" +
-        "bb bb bb\n" +
         "COMPS\n" +
         "STD=\"$PREFIX/std\"\n" +
         "if [ -d \"$STD/.git\" ] && [ \"$MODE\" = \"apply\" ]; then\n" +
