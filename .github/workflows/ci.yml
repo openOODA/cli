@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build:
@@ -48,7 +48,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/oodar/lib"
           cp -f "$HOME/.openooda/lib/liboodar.a" "$GITHUB_WORKSPACE/oodar/lib/liboodar.a"
           curl -fsSL -o "$HOME/.openooda/northstar.oot" \
-            https://raw.githubusercontent.com/openOODA/openOODA/main/northstar.oot
+            https://raw.githubusercontent.com/openOODA/openOODA/master/northstar.oot
           echo "$HOME/.openooda/bin" >> "$GITHUB_PATH"
           test -x "$HOME/.openooda/bin/oodac"
           test -f "$GITHUB_WORKSPACE/std/fs/process/env.oo"
@@ -200,8 +200,8 @@ jobs:
 
   release:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    uses: openOODA/openOODA/.github/workflows/auto-release.yml@main
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    uses: openOODA/openOODA/.github/workflows/auto-release.yml@master
     with:
       artifact_pattern: cli-*
     permissions:
