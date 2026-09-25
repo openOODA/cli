@@ -2,8 +2,7 @@
 //
 // Logline: Fail closed if no-args, missing-file, junk-flag, or alias paths drift.
 //
-// Setup: ProcessCap. sys_exec_wait for exit codes, sys_exec for output.
-// No oodac backend.
+// Setup: ProcessCap. sys_exec_wait for codes, sys_exec for output.
 //
 // Beats:
 //   1. Bare cli (no args) exits 2.
