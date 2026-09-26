@@ -24,6 +24,8 @@ cli install [--to PATH]       # install the cli pack to a prefix
 cli update                    # refresh stale binaries vs GitHub latest (sha256)
 cli update --check            # report current vs latest, no writes
 cli update --bootstrap        # full reinstall via install.sh (escape hatch)
+cli upgrade                   # same as update
+cli spec [file]               # show the language rule sheet
 cli init [name]               # scaffold a new project layout
 cli qa [--all]                # run the local qa suite
 cli context [dir] [--json]    # list .oo files under a directory

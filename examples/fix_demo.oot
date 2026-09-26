@@ -1,0 +1,32 @@
+# Example: a friendly failure and the fix
+
+File: cli/examples/fix_demo.oot
+
+Builds fail. A good failure tells you the file, the line, and the fix.
+This example shows the shape of one, and how `cli fix` helps.
+
+## Break it on purpose
+
+Take `hello.oo` from `cli/examples/hello.oot` and delete one closing
+mark (a quote or a brace). Then run `cli build hello.oo`.
+
+## What you should see
+
+One error block, near the top, naming the file and the line.
+The build stops. Nothing half-built is left behind. The message
+suggests the missing mark. That is a friendly failure: file first,
+reason second, nothing else to hunt.
+
+## Fix it two ways
+
+1. By hand: put the mark back, then `cli build hello.oo` again.
+2. With help: run `cli fix hello.oo`, review what it changed,
+   then `cli build hello.oo` again. Add `--yes` to skip asking.
+
+## When the failure is not friendly
+
+If the message names no file, or the same error survives the fix:
+
+1. Run `cli qa`. Green means the tool is fine and your file is at fault.
+2. Run `cli version`. Write the version down with your report.
+3. Keep the full error text. The first line matters most.

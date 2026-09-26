@@ -1,0 +1,48 @@
+# Start here: the cli controls in five minutes
+
+File: cli/docs/start.oot
+
+`cli` is the set of typed commands that build and run openOODA programs.
+Think of it as the control panel. One command per job. No hidden steps.
+
+## The three commands you need first
+
+1. `cli build <file>` — turn a `.oo` file into a program you can run.
+2. `cli run <file>` — build it and run it in one step.
+3. `cli help` — list every command. Start here when you forget.
+
+Run `cli version` to see which release you have. If a guide and your
+tool disagree, trust the tool on your machine and report the gap.
+
+## A first session
+
+Pick the sample in `cli/examples/hello.oot`. Build it. Then run it.
+Both steps should finish with no errors. If the build fails, read the
+error line, fix the file, and build again. See `cli/examples/fix_demo.oot`
+for what a friendly failure looks like and how `cli fix` helps.
+
+## The rest of the panel
+
+- `cli test <file>` — build and run a check file.
+- `cli fmt <file>` — tidy the layout of a file. Add `--check` to only ask.
+- `cli init [name]` — make a new project folder with the usual layout.
+- `cli qa` — run the built-in checks for this repo.
+- `cli context [dir]` — list the `.oo` files under a folder.
+- `cli fix <file>` — repair common small errors. Add `--yes` to skip asking.
+- `cli spec [file]` — show the language rule sheet in the terminal.
+- `cli install [--to PATH]` — place the cli pack where you want it.
+- `cli update` — refresh old helper programs. `--check` only reports.
+  `upgrade` means the same as `update`.
+- `cli token <sub>` — usage numbers. This one hands off to the work screen.
+
+## When something breaks
+
+1. Run the command again and read the first error line. It names the file.
+2. Run `cli qa`. If the built-in checks pass, the fault is in your file.
+3. Try `cli fix <file>` for small errors before editing by hand.
+
+## Proof
+
+From the cli folder: `make verify` must pass (line cap, file law,
+header check). `make build` then `make test` must pass when the
+compiler is installed. See the Makefile for what each step runs.

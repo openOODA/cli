@@ -1,0 +1,36 @@
+# Example: build and run hello
+
+File: cli/examples/hello.oot
+
+The smallest full trip: one file, two commands, one line out.
+
+## The file
+
+Save this as `hello.oo`:
+
+```
+// # Hello — First cli Trip
+//
+// Logline: Print one line. Proves build and run work.
+//
+// Setup: No outside files. No network. Runs anywhere.
+//
+// Beats:
+//   1. Build with cli. Run with cli. See one line.
+```
+
+`cli build hello.oo` turns it into a program.
+`cli run hello.oo` builds it and runs it at once.
+
+## What you should see
+
+The run prints its greeting line and stops with no errors.
+Exact words depend on your file. Silence plus an error line
+means the build failed: read the first error line, it names
+the problem and the file.
+
+## Try next
+
+- `cli fmt hello.oo --check` — asks if the layout is tidy.
+- `cli context .` — lists every `.oo` file in this folder.
+- `cli fix hello.oo` — only needed when the build complains.
