@@ -1,0 +1,28 @@
+// # cli compiler-token Probe — OODA_COMPILER only
+//
+// Logline: Fail closed if build/find_compiler.oo regrows a compiler fallback path.
+//
+// Setup: FsReadCap reads find_compiler.oo beside the repo root (same contract as probe_build.oo).
+//
+// Beats:
+//   1. Source requires OODA_COMPILER.
+//   2. Source omits the bin/oodac fallback.
+//   3. Source omits the ooda/oodac_bin fallback.
+
+pub fn probe_compiler_token(fs: &FsReadCap) -> Result[Int, String] {
+    let rr: Result[String, String] = read_file(fs, "build/find_compiler.oo");
+    if rr.is_err() { return Err("unreadable build/find_compiler.oo"); }
+    let src: String = match rr { Ok(s) => s, Err(_) => "" };
+    if src == "" { return Err("empty build/find_compiler.oo"); }
+    if !str_contains(src, "OODA_COMPILER") {
+        return Err("find_compiler must require OODA_COMPILER");
+    }
+    if str_contains(src, "bin/oodac") {
+        return Err("find_compiler must not fall back to bin/oodac");
+    }
+    if str_contains(src, "ooda/oodac_bin") {
+        return Err("find_compiler must not fall back to ooda/oodac_bin");
+    }
+    println("probe: compiler token ok");
+    return Ok(0);
+}

@@ -110,7 +110,16 @@ jobs:
           export OODA_NO_JAIL=1
           mkdir -p .ooda-cache/ooda-tmp
           "$OODA_COMPILER" check main.oo
+          "$OODA_COMPILER" check qa/probe_compiler_token.oo
           echo "PASS: oodac check"
+
+      - name: find_compiler no-fallback (anchor OODA_COMPILER-only)
+        working-directory: cli
+        run: |
+          set -e
+          ! grep -q "bin/oodac" build/find_compiler.oo || { echo "ERR find_compiler fallback"; exit 1; }
+          ! grep -q "ooda/oodac_bin" build/find_compiler.oo || { echo "ERR find_compiler fallback"; exit 1; }
+          echo "PASS: find_compiler OODA_COMPILER-only"
 
       - name: Build
         working-directory: cli

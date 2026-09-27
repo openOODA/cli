@@ -1,6 +1,6 @@
 // # cli QA Suite — Help, Version, Unknown Sub, Build
 //
-// Logline: Run help/version/unknown-sub/build probes twice against the current cli binary.
+// Logline: Run help/version/unknown-sub/build/edge/compiler-token probes twice against the current cli binary.
 //
 // Setup: ProcessCap sys_exec. FsReadCap+EnvCap resolve dist/cli or OODA_COMPILER sibling.
 //
@@ -14,6 +14,7 @@ import "probe_version.oo";
 import "probe_unknown.oo";
 import "probe_build.oo";
 import "probe_edge.oo";
+import "probe_compiler_token.oo";
 
 fn sibling_cli(oodac: String) -> String {
     let n: Int = chars_len(oodac);
@@ -78,6 +79,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     println("  Running qa/probe_edge.oo");
     let e: Result[Int, String] = run_twice(probe_edge(p, bin), probe_edge(p, bin));
     if e.is_err() { return e; }
+
+    println("  Running qa/probe_compiler_token.oo");
+    let ct: Result[Int, String] = run_twice(probe_compiler_token(fs_r), probe_compiler_token(fs_r));
+    if ct.is_err() { return ct; }
 
     println("cli test suite: ALL PROBES PASSED (double-run identical)");
     return Ok(0);
