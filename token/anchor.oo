@@ -1,8 +1,8 @@
 // # openOODA CLI Token — Anchor for Agents
 //
-// Logline: Token router. cli token <sub> forwards to ooda-tui --token <sub>.
+// Logline: Token router. cli token <sub> forwards to tui --token <sub>.
 //
-// Setup: spawn() runs ooda-tui. Args append after --token.
+// Setup: spawn() runs tui. Args append after --token.
 //
 // Beats:
 //   1. token.oo builds ["--token", <rest...>] and spawn("tui", ...).

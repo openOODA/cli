@@ -1,12 +1,12 @@
 // # Enumerate .oo files for the cli
 //
-// Logline: List .oo files under a path. JSON or human-readable output. The --llm codex stream moved to ooda-tui session start.
+// Logline: List .oo files under a path. JSON or human-readable output. The --llm codex stream moved to tui session start.
 //
 // Setup: &FsReadCap walks the target directory.
 //
 // Beats:
 //   1. Parse --json flag and the optional directory path from argv.
-//   2. Refuse --llm (moved to ooda-tui session start).
+//   2. Refuse --llm (moved to tui session start).
 //   3. Enumerate .oo files under the path, count, and print the list.
 //   4. In --json mode, emit the count and file list as a single JSON object.
 //
@@ -139,7 +139,7 @@ pub fn run_ooda_context(fr: &FsReadCap, args: List[String]) {
     }
 
     if saw_llm {
-        println("ERR\tcontext\t--llm moved (LLMS.oot auto-loads in ooda-tui session start)");
+        println("ERR\tcontext\t--llm moved (LLMS.oot auto-loads in tui session start)");
         process_exit(2);
         return;
     }

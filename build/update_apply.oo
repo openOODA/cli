@@ -68,7 +68,7 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  lsha=missing\n" +
         "  [ -e \"$path\" ] && lsha=$(sha_of \"$path\")\n" +
         "  if [ \"$lsha\" = \"$rsha\" ]; then\n" +
-        "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
+        "    if [ \"$MODE\" = \"apply\" ] && [ \"$repo\" = \"tui\" ]; then rm -f \"$BIN/ooda-tui\"; fi\n" +
         "    printf '%s\\t%s\\tok\\tcurrent\\n' \"$repo\" \"$path\" >> \"$RPT\"\n" +
         "    row \"$repo\" ok \"$rsha\" \"$by\" ''\n" +
         "    N_OK=$((N_OK+1)); continue\n" +
@@ -81,7 +81,7 @@ fn update_apply_script(mode: String, prefix: String) -> String {
         "  if [ \"$gsha\" != \"$rsha\" ]; then rm -f \"$tmp\"; printf '%s\\t%s\\tfail\\tsha-mismatch\\n' \"$repo\" \"$path\" >> \"$RPT\"; row \"$repo\" fail '' \"$by\" sha-mismatch; N_FAIL=$((N_FAIL+1)); continue; fi\n" +
         "  chmod +x \"$tmp\" 2>/dev/null || true\n" +
         "  mv -f \"$tmp\" \"$path\"\n" +
-        "  if [ \"$repo\" = \"tui\" ]; then cp -f \"$path\" \"$BIN/ooda-tui\"; chmod +x \"$BIN/ooda-tui\"; fi\n" +
+        "  if [ \"$repo\" = \"tui\" ]; then rm -f \"$BIN/ooda-tui\"; fi\n" +
         "  by=$(bytes_of \"$path\")\n" +
         "  printf '%s\\t%s\\tupdated\\t%s\\n' \"$repo\" \"$path\" \"$rsha\" >> \"$RPT\"\n" +
         "  row \"$repo\" updated \"$rsha\" \"$by\" ''\n" +

@@ -30,7 +30,7 @@ cli init [name]               # scaffold a new project layout
 cli qa [--all]                # run the local qa suite
 cli context [dir] [--json]    # list .oo files under a directory
 cli fix <file> [--yes]        # auto-fix common compile errors
-cli token <sub>               # LLM token telemetry (forwards to ooda-tui)
+cli token <sub>               # LLM token telemetry (forwards to tui)
 cli version                   # print cli version
 cli help                      # print usage
 ```
@@ -44,14 +44,14 @@ Quick map:
 | Legacy `ooda <sub>` | New home |
 |---|---|
 | `build`, `run`, `test`, `fmt`, `install`, `update`, `upgrade`, `init`, `qa`, `context` (file listing), `fix`, `version`, `help` | `cli <sub>` |
-| `token <sub>` | `cli token <sub>` (forwards to `ooda-tui /token <sub>`) |
+| `token <sub>` | `cli token <sub>` (forwards to `tui --token <sub>`) |
 | `opm`, `lsp`, `mcp`, `mcp-merge` | `ooda <sub>` (router unchanged) |
-| `eval`, `repl` | (dead) — use `ooda-tui` shell |
+| `eval`, `repl` | (dead) — use `tui` shell |
 | `bench`, `digest`, `health`, `sandbox status`, `swarm status` | `blackbox <sub>` |
 | `gen` | `opm gen <sub>` |
-| `sandbox run` | `ooda-tui /sandbox run` |
-| `swarm init\|run` | `ooda-tui /teamwork init\|run` |
-| `context --llm` | (dead) — `LLMS.oot` auto-loads in `ooda-tui` session start |
+| `sandbox run` | `tui /sandbox run` |
+| `swarm init\|run` | `tui /teamwork init\|run` |
+| `context --llm` | (dead) — `LLMS.oot` auto-loads in `tui` session start |
 
 ## Build from source
 
@@ -77,7 +77,7 @@ make build
 | [openOODA/lsp](https://github.com/openOODA/lsp) | Language server |
 | [openOODA/mcp](https://github.com/openOODA/mcp) | MCP server |
 | [openOODA/bb](https://github.com/openOODA/bb) | Flight recorder and crash autopsy |
-| [openOODA/ooda-tui](https://github.com/openOODA/ooda-tui) | AI harness |
+| [openOODA/tui](https://github.com/openOODA/tui) | AI harness |
 | [openOODA/website](https://github.com/openOODA/website) | Website source |
 
 ## License

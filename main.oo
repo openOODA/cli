@@ -42,7 +42,7 @@ fn print_help() {
     println("  qa [--all]        run the local qa suite");
     println("  context [dir]     list .oo files under a directory");
     println("  fix <file>        auto-fix common compile errors");
-    println("  token <sub>       LLM token telemetry (forwards to ooda-tui)");
+    println("  token <sub>       LLM token telemetry (forwards to tui)");
     println("  spec [file]       display language specification sheet");
     println("  version           print cli version");
     println("  help              print this message");

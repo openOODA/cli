@@ -1,12 +1,12 @@
 // # cli token forwarder
 //
-// Logline: Forward `cli token <sub>` to `ooda-tui --token <sub>` so headless CI users keep a stable surface.
+// Logline: Forward `cli token <sub>` to `tui --token <sub>` so headless CI users keep a stable surface.
 //
-// Setup: ProcessCap spawns ooda-tui. Args are appended after --token.
+// Setup: ProcessCap spawns tui. Args are appended after --token.
 //
 // Beats:
-//   1. Build the ooda-tui argv: ["--token", <rest...>].
-//   2. Spawn ooda-tui under OODACODEX/bin or ~/.openooda/bin.
+//   1. Build the tui argv: ["--token", <rest...>].
+//   2. Spawn tui under OODACODEX/bin or ~/.openooda/bin.
 //   3. Return the spawned exit code.
 
 import "std/fs/process/cmd.oo";
