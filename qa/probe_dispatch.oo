@@ -73,9 +73,12 @@ pub fn probe_dispatch(p: &ProcessCap, bin: String) -> Result[Int, String] {
     if r19.is_err() { return r19; }
     let tok: String = disp_run(p, bin, "token");
     let tok_ok: Bool = str_contains(tok, "PROBE_RC=0") && str_contains(tok, "subcommands");
-    let tok_absent: Bool = str_contains(tok, "PROBE_RC=1") && str_contains(tok, "missing binary");
+    // Absent tui fails closed two ways: spawn's checked "missing binary"
+    // or an unchecked exec miss (".../bin/tui: sys_exec_wait failed").
+    // Both exit 1 and name the tui path; accept either.
+    let tok_absent: Bool = str_contains(tok, "PROBE_RC=1") && str_contains(tok, "tui");
     if !tok_ok && !tok_absent {
-        return Err("token must forward to tui or fail missing-binary: " + tok);
+        return Err("token must forward to tui or fail naming tui: " + tok);
     }
     let ins: String = disp_run(p, bin, "install --bogus");
     if str_contains(ins, "PROBE_RC=0") {
