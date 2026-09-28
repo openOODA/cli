@@ -93,6 +93,9 @@ pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap
     }
     if sub == "fmt" {
         let rc: Int = run_ooda_fmt(fs_r, fs_w, alloc, rest);
+        if rc != 0 {
+            process_exit(rc);
+        }
         return Ok(rc);
     }
     if sub == "install" { run_ooda_install_cmd(fs_r, sys, env, fs_w, rest); return Ok(0); }
@@ -102,6 +105,8 @@ pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap
         let r: Result[String, String] = cli_init_project(fs_r, fs_w, name);
         if r.is_err() {
             let e: String = match r { Ok(_) => "", Err(m) => m };
+            println("cli init: " + e);
+            process_exit(1);
             return Err(e);
         }
         let msg: String = match r { Ok(m) => m, Err(_) => "" };
@@ -120,6 +125,9 @@ pub fn main(bind: &BindCap, fs_r: &FsReadCap, sys: &ProcessCap, sys_cap: &SysCap
             process_exit(1);
         }
         let code: Int = match r { Ok(c) => c, Err(_) => 1 };
+        if code != 0 {
+            process_exit(code);
+        }
         return Ok(code);
     }
 

@@ -1,0 +1,88 @@
+// # cli dispatch Probe — Every Verb Routes or Fails Closed
+//
+// Logline: Fail closed if any cli subcommand misroutes, swallows its exit code, or prints the wrong error.
+//
+// Setup: ProcessCap. Each verb runs under `sh -c` (the process_exec pattern)
+// with `2>&1; echo PROBE_RC=$?` so one capture carries both output and code.
+// CWD must be the cli repo root (relative paths like main.oo). No oodac backend.
+//
+// Beats:
+//   1. run/test/fmt/qa/context/fix/init/update/upgrade/install fail-closed paths exit nonzero with the right error.
+//   2. fmt --check pins current printer behavior (repo-wide FAIL: printer canonical style is 2-space, repo is 4-space).
+//   3. context/spec happy paths print deterministic content.
+//   4. token forwards to tui when present, else fails missing-binary (env-conditional, both honest).
+
+fn disp_run(p: &ProcessCap, bin: String, argstr: String) -> String {
+    let cmd: String = bin + " " + argstr + " 2>&1; echo PROBE_RC=$?";
+    let r: Result[String, String] = sys_exec(p, "sh", "-c", cmd);
+    if r.is_err() {
+        let e: String = match r { Ok(_) => "", Err(m) => m };
+        return "PROBE_SH_FAIL:" + e;
+    }
+    return match r { Ok(s) => s, Err(_) => "" };
+}
+
+fn disp_expect(out: String, what: String, rc: String, needle: String) -> Result[Int, String] {
+    if !str_contains(out, "PROBE_RC=" + rc) {
+        return Err(what + " must exit " + rc + ": " + out);
+    }
+    if needle != "" {
+        if !str_contains(out, needle) {
+            return Err(what + " missing '" + needle + "': " + out);
+        }
+    }
+    return Ok(0);
+}
+
+pub fn probe_dispatch(p: &ProcessCap, bin: String) -> Result[Int, String] {
+    let r1: Result[Int, String] = disp_expect(disp_run(p, bin, "run NOPE.oo"), "run missing", "2", "unreadable file");
+    if r1.is_err() { return r1; }
+    let r2: Result[Int, String] = disp_expect(disp_run(p, bin, "test NOPE.oo"), "test missing", "2", "unreadable file");
+    if r2.is_err() { return r2; }
+    let r3: Result[Int, String] = disp_expect(disp_run(p, bin, "test --bogus"), "test flag", "2", "missing file");
+    if r3.is_err() { return r3; }
+    let r4: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt"), "fmt usage", "1", "usage: cli fmt");
+    if r4.is_err() { return r4; }
+    let r5: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt NOPE.oo"), "fmt missing", "2", "missing file");
+    if r5.is_err() { return r5; }
+    let r6: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt ../evil.oo"), "fmt traversal", "2", "rejected traversal");
+    if r6.is_err() { return r6; }
+    let r7: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt --check main.oo"), "fmt check", "1", "FAIL");
+    if r7.is_err() { return r7; }
+    let r8: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt qa/probe_version.oo"), "fmt idempotence", "1", "not idempotent");
+    if r8.is_err() { return r8; }
+    let r9: Result[Int, String] = disp_expect(disp_run(p, bin, "qa --bogus"), "qa flag", "2", "unknown flag");
+    if r9.is_err() { return r9; }
+    let r10: Result[Int, String] = disp_expect(disp_run(p, bin, "context --llm"), "context moved", "2", "--llm moved");
+    if r10.is_err() { return r10; }
+    let r11: Result[Int, String] = disp_expect(disp_run(p, bin, "context qa"), "context list", "0", "probe_help.oo");
+    if r11.is_err() { return r11; }
+    let r12: Result[Int, String] = disp_expect(disp_run(p, bin, "fix"), "fix usage", "2", "missing file");
+    if r12.is_err() { return r12; }
+    let r13: Result[Int, String] = disp_expect(disp_run(p, bin, "fix NOPE.oo"), "fix missing", "2", "unreadable file");
+    if r13.is_err() { return r13; }
+    let r14: Result[Int, String] = disp_expect(disp_run(p, bin, "fix qa/probe_version.oo"), "fix clean", "1", "nothing to fix");
+    if r14.is_err() { return r14; }
+    let r15: Result[Int, String] = disp_expect(disp_run(p, bin, "init qa"), "init exists", "1", "already exists");
+    if r15.is_err() { return r15; }
+    let r16: Result[Int, String] = disp_expect(disp_run(p, bin, "init ../x"), "init refused", "1", "refused project name");
+    if r16.is_err() { return r16; }
+    let r17: Result[Int, String] = disp_expect(disp_run(p, bin, "update --bogus"), "update flag", "2", "unknown flag");
+    if r17.is_err() { return r17; }
+    let r18: Result[Int, String] = disp_expect(disp_run(p, bin, "upgrade --bogus"), "upgrade alias", "2", "unknown flag");
+    if r18.is_err() { return r18; }
+    let r19: Result[Int, String] = disp_expect(disp_run(p, bin, "spec spec.oo"), "spec custom", "0", "Logline");
+    if r19.is_err() { return r19; }
+    let tok: String = disp_run(p, bin, "token");
+    let tok_ok: Bool = str_contains(tok, "PROBE_RC=0") && str_contains(tok, "subcommands");
+    let tok_absent: Bool = str_contains(tok, "PROBE_RC=1") && str_contains(tok, "missing binary");
+    if !tok_ok && !tok_absent {
+        return Err("token must forward to tui or fail missing-binary: " + tok);
+    }
+    let ins: String = disp_run(p, bin, "install --bogus");
+    if str_contains(ins, "PROBE_RC=0") {
+        return Err("install --bogus must fail closed: " + ins);
+    }
+    println("probe: dispatch ok");
+    return Ok(0);
+}
