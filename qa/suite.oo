@@ -63,31 +63,59 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
 
     println("  Running qa/probe_help.oo");
     let h: Result[Int, String] = run_twice(probe_help(p, bin), probe_help(p, bin));
-    if h.is_err() { return h; }
+    if h.is_err() {
+        let he: String = match h { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_help: " + he);
+        return h;
+    }
 
     println("  Running qa/probe_version.oo");
     let v: Result[Int, String] = run_twice(probe_version(p, bin), probe_version(p, bin));
-    if v.is_err() { return v; }
+    if v.is_err() {
+        let ve: String = match v { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_version: " + ve);
+        return v;
+    }
 
     println("  Running qa/probe_unknown.oo");
     let u: Result[Int, String] = run_twice(probe_unknown(p, bin), probe_unknown(p, bin));
-    if u.is_err() { return u; }
+    if u.is_err() {
+        let ue: String = match u { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_unknown: " + ue);
+        return u;
+    }
 
     println("  Running qa/probe_build.oo");
     let b: Result[Int, String] = run_twice(probe_build(p, fs_r, bin), probe_build(p, fs_r, bin));
-    if b.is_err() { return b; }
+    if b.is_err() {
+        let be: String = match b { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_build: " + be);
+        return b;
+    }
 
     println("  Running qa/probe_edge.oo");
     let e: Result[Int, String] = run_twice(probe_edge(p, bin), probe_edge(p, bin));
-    if e.is_err() { return e; }
+    if e.is_err() {
+        let ee: String = match e { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_edge: " + ee);
+        return e;
+    }
 
     println("  Running qa/probe_compiler_token.oo");
     let ct: Result[Int, String] = run_twice(probe_compiler_token(fs_r), probe_compiler_token(fs_r));
-    if ct.is_err() { return ct; }
+    if ct.is_err() {
+        let cte: String = match ct { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_compiler_token: " + cte);
+        return ct;
+    }
 
     println("  Running qa/probe_dispatch.oo");
     let d: Result[Int, String] = run_twice(probe_dispatch(p, bin), probe_dispatch(p, bin));
-    if d.is_err() { return d; }
+    if d.is_err() {
+        let de: String = match d { Ok(_) => "", Err(m) => m };
+        println("FAIL: probe_dispatch: " + de);
+        return d;
+    }
 
     println("cli test suite: ALL PROBES PASSED (double-run identical)");
     return Ok(0);
