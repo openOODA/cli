@@ -2,9 +2,7 @@
 //
 // Logline: Fail closed if any cli subcommand misroutes, swallows its exit code, or prints the wrong error.
 //
-// Setup: ProcessCap. Each verb runs under `sh -c` (the process_exec pattern)
-// with `2>&1; echo PROBE_RC=$?` so one capture carries both output and code.
-// CWD must be the cli repo root (relative paths like main.oo). No oodac backend.
+// Setup: sh -c wrapper captures code+output per verb; CWD is the cli root.
 //
 // Beats:
 //   1. run/test/fmt/qa/context/fix/init/update/upgrade/install fail-closed paths exit nonzero with the right error.

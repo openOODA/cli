@@ -2,8 +2,7 @@
 //
 // Logline: Run help/version/unknown-sub/build/edge/compiler-token/dispatch probes twice against the current cli binary.
 //
-// Setup: ProcessCap sys_exec. FsReadCap+EnvCap resolve dist/cli or OODA_COMPILER sibling.
-// CWD must be the cli repo root (dispatch probes use relative paths).
+// Setup: ProcessCap sys_exec. FsReadCap+EnvCap resolve dist/cli or sibling. CWD is the cli root.
 //
 // Beats:
 //   1. Resolve dist/cli, then the cli next to OODA_COMPILER.
