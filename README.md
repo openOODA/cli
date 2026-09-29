@@ -82,7 +82,7 @@ make build
 
 ## License
 
-Dual-licensed under your choice of MIT or Apache 2.0. See `LICENSE`.
+Apache-2.0. See [LICENSE](LICENSE) for full text.
 
 ---
 
