@@ -6,7 +6,7 @@
 //
 // Beats:
 //   1. Resolve dist/cli, then the cli next to OODA_COMPILER.
-//   2. Run each probe twice. Fail closed on the first Err.
+//   2. Run every probe twice; report all failures, exit 0 only if none.
 
 import "std/fs/process/env.oo";
 import "probe_help.oo";
@@ -61,12 +61,18 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     }
     println("  cli binary: " + bin);
 
+    let mut failed: Int = 0;
+    let mut first_err: String = "";
+
     println("  Running qa/probe_help.oo");
     let h: Result[Int, String] = run_twice(probe_help(p, bin), probe_help(p, bin));
     if h.is_err() {
         let he: String = match h { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_help: " + he);
-        return h;
+        if failed == 0 { first_err = "probe_help: " + he; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_help");
     }
 
     println("  Running qa/probe_version.oo");
@@ -74,7 +80,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if v.is_err() {
         let ve: String = match v { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_version: " + ve);
-        return v;
+        if failed == 0 { first_err = "probe_version: " + ve; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_version");
     }
 
     println("  Running qa/probe_unknown.oo");
@@ -82,7 +91,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if u.is_err() {
         let ue: String = match u { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_unknown: " + ue);
-        return u;
+        if failed == 0 { first_err = "probe_unknown: " + ue; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_unknown");
     }
 
     println("  Running qa/probe_build.oo");
@@ -90,7 +102,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if b.is_err() {
         let be: String = match b { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_build: " + be);
-        return b;
+        if failed == 0 { first_err = "probe_build: " + be; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_build");
     }
 
     println("  Running qa/probe_edge.oo");
@@ -98,7 +113,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if e.is_err() {
         let ee: String = match e { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_edge: " + ee);
-        return e;
+        if failed == 0 { first_err = "probe_edge: " + ee; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_edge");
     }
 
     println("  Running qa/probe_compiler_token.oo");
@@ -106,7 +124,10 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if ct.is_err() {
         let cte: String = match ct { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_compiler_token: " + cte);
-        return ct;
+        if failed == 0 { first_err = "probe_compiler_token: " + cte; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_compiler_token");
     }
 
     println("  Running qa/probe_dispatch.oo");
@@ -114,9 +135,16 @@ pub fn main(p: &ProcessCap, fs_r: &FsReadCap, env: &EnvCap, args: List[String]) 
     if d.is_err() {
         let de: String = match d { Ok(_) => "", Err(m) => m };
         println("FAIL: probe_dispatch: " + de);
-        return d;
+        if failed == 0 { first_err = "probe_dispatch: " + de; }
+        failed = failed + 1;
+    } else {
+        println("PASS: probe_dispatch");
     }
 
+    if failed != 0 {
+        println("cli test suite: " + failed.to_string() + " probe(s) failed");
+        return Err(first_err);
+    }
     println("cli test suite: ALL PROBES PASSED (double-run identical)");
     return Ok(0);
 }
