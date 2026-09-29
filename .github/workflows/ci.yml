@@ -40,15 +40,26 @@ jobs:
           sudo apt-get install -y -qq gcc clang
           mkdir -p "$HOME/.openooda/bin" "$HOME/.openooda/lib"
           GH=https://github.com/openOODA
+          # Pinned toolchain: every artifact hash-verified before use (a
+          # replaced release asset fails closed). Bump version + hash
+          # together, deliberately. A stale liboodar pin fails loudly at
+          # link time, never silently.
+          OODAC_SHA256="08474a9a05815854295332fc027b1e06150200aa4cfdfbffd3d175290e66dddb"
           curl -fsSL -o "$HOME/.openooda/bin/oodac" \
             "$GH/oodac/releases/download/v0.2.99/oodac-linux-x86_64"
+          echo "$OODAC_SHA256  $HOME/.openooda/bin/oodac" | sha256sum -c -
           chmod +x "$HOME/.openooda/bin/oodac"
+          OODAR_SHA256="eddc7af6ab6ca84add83247f4ababd3f395cced0cf69de354c07398b97de7e60"
           curl -fsSL -o "$HOME/.openooda/lib/liboodar.a" \
-            "$GH/oodar/releases/latest/download/liboodar.a-linux-x86_64"
+            "$GH/oodar/releases/download/v4.0.65/liboodar.a-linux-x86_64"
+          echo "$OODAR_SHA256  $HOME/.openooda/lib/liboodar.a" | sha256sum -c -
           mkdir -p "$GITHUB_WORKSPACE/oodar/lib"
           cp -f "$HOME/.openooda/lib/liboodar.a" "$GITHUB_WORKSPACE/oodar/lib/liboodar.a"
+          NORTHSTAR_SHA="adfd86a19e4e471c4e82578c6696fe4a08b4100e"
+          NORTHSTAR_SHA256="eb3e36e9154220418f9d37dce2414ebaf3d39f7755967e6114ad1670be704ea3"
           curl -fsSL -o "$HOME/.openooda/northstar.oot" \
-            https://raw.githubusercontent.com/openOODA/openOODA/master/northstar.oot
+            "https://raw.githubusercontent.com/openOODA/openOODA/${NORTHSTAR_SHA}/northstar.oot"
+          echo "$NORTHSTAR_SHA256  $HOME/.openooda/northstar.oot" | sha256sum -c -
           echo "$HOME/.openooda/bin" >> "$GITHUB_PATH"
           test -x "$HOME/.openooda/bin/oodac"
           test -f "$GITHUB_WORKSPACE/std/fs/process/env.oo"
