@@ -10,6 +10,11 @@
 //   3. cli --version with trailing junk still exits 0 (pre-pass wins).
 //   4. cli --frobnicate (unknown flag) exits 2.
 //   5. cli help and cli --help print identical output.
+//   6. cli test with a nonexistent file exits 2 (fail closed).
+//   7. cli help with trailing junk still exits 0 (pre-pass wins).
+//   8. cli --frobnicate --version exits 0 (pre-pass scans all args).
+// NOTE: empty-argv (`cli ""`, shell-verified exit 2) is not asserted:
+// the spawn layer cannot deliver an empty argv element faithfully.
 
 fn probe_edge_wait(argv0: List[String], p: &ProcessCap, bin: String) -> Int {
     let r: Result[Int, String] = sys_exec_wait(p, bin, argv0);
@@ -51,6 +56,24 @@ pub fn probe_edge(p: &ProcessCap, bin: String) -> Result[Int, String] {
     let o2: String = match h2 { Ok(s) => s, Err(_) => "" };
     if o1 != o2 {
         return Err("help and --help outputs differ");
+    }
+    let mut miss: List[String] = list_new();
+    miss = list_push(miss, "test");
+    miss = list_push(miss, "/nonexistent-ooda-edge-zz.oo");
+    if probe_edge_wait(miss, p, bin) != 2 {
+        return Err("cli test with missing file must exit 2");
+    }
+    let mut hj: List[String] = list_new();
+    hj = list_push(hj, "help");
+    hj = list_push(hj, "junk");
+    if probe_edge_wait(hj, p, bin) != 0 {
+        return Err("cli help junk must still exit 0");
+    }
+    let mut jv: List[String] = list_new();
+    jv = list_push(jv, "--frobnicate");
+    jv = list_push(jv, "--version");
+    if probe_edge_wait(jv, p, bin) != 0 {
+        return Err("cli junk flag + --version must exit 0 (pre-pass wins)");
     }
     println("probe: edge ok");
     return Ok(0);
