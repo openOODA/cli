@@ -9,7 +9,6 @@
 //   2. Spawn tui under OODACODEX/bin or ~/.openooda/bin.
 //   3. Return the spawned exit code.
 
-import "std/fs/process/cmd.oo";
 import "build/spawn.oo";
 
 pub fn run_cli_token(fs_r: &FsReadCap, sys: &ProcessCap, env: &EnvCap, args: List[String]) -> Result[Int, String] {
