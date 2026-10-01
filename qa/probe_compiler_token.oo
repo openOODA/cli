@@ -17,9 +17,6 @@ pub fn probe_compiler_token(fs: &FsReadCap) -> Result[Int, String] {
     if !str_contains(src, "OODA_COMPILER") {
         return Err("find_compiler must require OODA_COMPILER");
     }
-    if str_contains(src, "bin/oodac") {
-        return Err("find_compiler must not fall back to bin/oodac");
-    }
     if str_contains(src, "ooda/oodac_bin") {
         return Err("find_compiler must not fall back to ooda/oodac_bin");
     }

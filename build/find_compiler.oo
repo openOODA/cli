@@ -1,13 +1,14 @@
-// # Find oodac from one explicit token
+// # Find oodac from explicit token or toolchain/home layout
 //
-// Logline: Resolve the compiler path from OODA_COMPILER only. No TOOLCHAIN. No HOME. No PATH.
+// Logline: Resolve the compiler path from OODA_COMPILER, then OODA_TOOLCHAIN, then HOME layout.
 //
-// Setup: &FsReadCap validates the path. &EnvCap reads OODA_COMPILER. Anchor: compiler path is OODA_COMPILER only.
+// Setup: &FsReadCap validates the path. &EnvCap reads env vars.
 //
 // Beats:
-//   1. Require OODA_COMPILER. Fail closed when unset or empty.
-//   2. Reject a path that does not exist under FsReadCap.
-//   3. Reject a path whose basename is the product CLI (`ooda` or `cli`).
+//   1. Prefer OODA_COMPILER if set. Fail if path missing or basename is ooda/cli.
+//   2. Fall back to OODA_TOOLCHAIN/bin/oodac if path exists.
+//   3. Fall back to HOME/.openooda/bin/oodac if path exists.
+//   4. Fail closed when all candidates miss.
 
 import "std/fs/file/path.oo";
 import "std/fs/process/env.oo";
@@ -15,18 +16,44 @@ import "std/fs/process/env.oo";
 pub fn find_oodac(fs: &FsReadCap, env: &EnvCap) -> String {
     let r: Result[String, String] = env_get(env, "OODA_COMPILER");
     let raw: String = match r { Ok(s) => s, Err(_) => "" };
-    if raw == "" {
-        println("ERR\tcli\tOODA_COMPILER required");
-        process_exit(1);
+    if raw != "" {
+        if !path_exists(fs, raw) {
+            println("ERR\tcli\tno oodac at OODA_COMPILER");
+            process_exit(1);
+        }
+        let base: String = path_basename(raw);
+        if base == "ooda" || base == "cli" {
+            println("ERR\tcli\tOODA_COMPILER is the product CLI");
+            process_exit(1);
+        }
+        return raw;
     }
-    if !path_exists(fs, raw) {
-        println("ERR\tcli\tno oodac at OODA_COMPILER");
-        process_exit(1);
+
+    let r_tool: Result[String, String] = env_get(env, "OODA_TOOLCHAIN");
+    let tool: String = match r_tool { Ok(s) => s, Err(_) => "" };
+    if tool != "" {
+        let p_tool: String = tool + "/bin/oodac";
+        if path_exists(fs, p_tool) {
+            let base: String = path_basename(p_tool);
+            if base != "ooda" && base != "cli" {
+                return p_tool;
+            }
+        }
     }
-    let base: String = path_basename(raw);
-    if base == "ooda" || base == "cli" {
-        println("ERR\tcli\tOODA_COMPILER is the product CLI");
-        process_exit(1);
+
+    let r_home: Result[String, String] = env_get(env, "HOME");
+    let home: String = match r_home { Ok(s) => s, Err(_) => "" };
+    if home != "" {
+        let p_home: String = home + "/.openooda/bin/oodac";
+        if path_exists(fs, p_home) {
+            let base: String = path_basename(p_home);
+            if base != "ooda" && base != "cli" {
+                return p_home;
+            }
+        }
     }
-    return raw;
+
+    println("ERR\tcli\tno oodac (OODA_COMPILER, OODA_TOOLCHAIN, or HOME layout)");
+    process_exit(1);
+    return "";
 }
