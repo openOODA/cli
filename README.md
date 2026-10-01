@@ -47,9 +47,11 @@ Quick map:
 | `token <sub>` | `cli token <sub>` (forwards to `tui --token <sub>`) |
 | `opm`, `lsp`, `mcp`, `mcp-merge` | `ooda <sub>` (router unchanged) |
 | `eval`, `repl` | (dead) — use `tui` shell |
-| `bench`, `digest`, `health`, `sandbox status`, `swarm status` | `blackbox <sub>` |
+| `bench` | `cli test` / `cli qa` (or `make bench`) |
+| `digest` | `cli context` |
+| `health` | `cli qa` (or `ooda doctor`) |
 | `gen` | `opm gen <sub>` |
-| `sandbox run` | `tui /sandbox run` |
+| `sandbox run` | `tui /sandbox run` (caps: `mcp attenuate_capability`) |
 | `swarm init\|run` | `tui /teamwork init\|run` |
 | `context --llm` | (dead) — `LLMS.oot` auto-loads in `tui` session start |
 
@@ -75,8 +77,7 @@ make build
 | [openOODA/opm](https://github.com/openOODA/opm) | Package manager |
 | [openOODA/catalog](https://github.com/openOODA/catalog) | Public package catalog |
 | [openOODA/lsp](https://github.com/openOODA/lsp) | Language server |
-| [openOODA/mcp](https://github.com/openOODA/mcp) | MCP server |
-| [openOODA/bb](https://github.com/openOODA/bb) | Flight recorder and crash autopsy |
+| [openOODA/mcp](https://github.com/openOODA/mcp) | MCP server, flight recording, and telemetry engine |
 | [openOODA/tui](https://github.com/openOODA/tui) | AI harness |
 | [openOODA/website](https://github.com/openOODA/website) | Website source |
 
