@@ -1,8 +1,18 @@
 // # openOODA CLI Audit — Anchor for Agents
 //
-// Logline: CLI audit notes. The 8-phase split record is openOODA/audit/cli_split_2026_09_13.oot.
+// Logline: CLI audit notes and historical records for sovereign verification.
 //
 // Setup: Per-PR handoff notes land in .agents/ (not audit/).
 //
 // Beats:
 //   1. Migration map lives in openOODA/audit/cli_split_2026_09_13.oot.
+//   2. Expose audit subsystem record descriptor.
+//   3. Retain version tracking for sovereign audit records.
+
+pub fn cli_audit_doc_path() -> String {
+    return "openOODA/audit/cli_split_2026_09_13.oot";
+}
+
+pub fn cli_audit_tag() -> String {
+    return "cli-audit-2026";
+}

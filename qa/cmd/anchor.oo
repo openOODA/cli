@@ -1,0 +1,12 @@
+// # CLI QA Command Probes Anchor
+//
+// Logline: Command interface probes for help, version, unknown, and dispatch.
+//
+// Setup: Pure shim re-exporting command probe modules.
+//
+// Beats:
+//   1. Re-export command probes.
+import "probe_help.oo";
+import "probe_version.oo";
+import "probe_unknown.oo";
+import "probe_dispatch.oo";

@@ -47,19 +47,19 @@ pub fn probe_dispatch(p: &ProcessCap, bin: String) -> Result[Int, String] {
     if r6.is_err() { return r6; }
     let r7: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt --check main.oo"), "fmt check", "1", "FAIL");
     if r7.is_err() { return r7; }
-    let r8: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt qa/probe_version.oo"), "fmt idempotence", "1", "not idempotent");
+    let r8: Result[Int, String] = disp_expect(disp_run(p, bin, "fmt qa/cmd/probe_version.oo"), "fmt idempotence", "1", "not idempotent");
     if r8.is_err() { return r8; }
     let r9: Result[Int, String] = disp_expect(disp_run(p, bin, "qa --bogus"), "qa flag", "2", "unknown flag");
     if r9.is_err() { return r9; }
     let r10: Result[Int, String] = disp_expect(disp_run(p, bin, "context --llm"), "context moved", "2", "--llm moved");
     if r10.is_err() { return r10; }
-    let r11: Result[Int, String] = disp_expect(disp_run(p, bin, "context qa"), "context list", "0", "probe_help.oo");
+    let r11: Result[Int, String] = disp_expect(disp_run(p, bin, "context qa/cmd"), "context list", "0", "probe_help.oo");
     if r11.is_err() { return r11; }
     let r12: Result[Int, String] = disp_expect(disp_run(p, bin, "fix"), "fix usage", "2", "missing file");
     if r12.is_err() { return r12; }
     let r13: Result[Int, String] = disp_expect(disp_run(p, bin, "fix NOPE.oo"), "fix missing", "2", "unreadable file");
     if r13.is_err() { return r13; }
-    let r14: Result[Int, String] = disp_expect(disp_run(p, bin, "fix qa/probe_version.oo"), "fix clean", "1", "nothing to fix");
+    let r14: Result[Int, String] = disp_expect(disp_run(p, bin, "fix qa/cmd/probe_version.oo"), "fix clean", "1", "nothing to fix");
     if r14.is_err() { return r14; }
     let r15: Result[Int, String] = disp_expect(disp_run(p, bin, "init qa"), "init exists", "1", "already exists");
     if r15.is_err() { return r15; }

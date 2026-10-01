@@ -58,12 +58,18 @@ line-cap:
 	echo "PASS: 256-line cap holds"
 
 file-law:
-	@forbidden="py js ts rb pl json yaml toml sh md"; \
+	@forbidden="py js ts rb pl json yaml toml sh"; \
 	violations=0; \
 	for ext in $$forbidden; do \
 		found=$$(find . -name "*.$$ext" -not -path "./.git/*" 2>/dev/null | head -3); \
-		if [ -n "$$found" ] && [ "$$ext" != "md" -o "$$found" != "./README.md" ]; then \
+		if [ -n "$$found" ]; then \
 			echo "VIOLATION: .$$ext forbidden:"; echo "$$found"; \
+			violations=$$((violations+1)); \
+		fi; \
+	done; \
+	for f in $$(find . -name "*.md" -not -path "./.git/*" 2>/dev/null); do \
+		if [ "$$f" != "./README.md" ] && [ "$$f" != "./AGENTS.md" ]; then \
+			echo "VIOLATION: .md forbidden outside README.md and AGENTS.md: $$f"; \
 			violations=$$((violations+1)); \
 		fi; \
 	done; \

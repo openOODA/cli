@@ -1,18 +1,11 @@
-// # openOODA CLI QA Cluster — Anchor for Agents
+// # cli QA Cluster Anchor
 //
-// Logline: Front door for the cli/ local qa suite. Probes verify the trimmed driver.
+// Logline: Front door for the cli local QA cluster linking cmd and build suites.
 //
-// Setup: Each probe is a self-contained .oo file with real assertions. No mocks, no in-memory test stubs.
+// Setup: Pure shim re-exporting cmd and build probe clusters.
 //
 // Beats:
-//   1. probe_help.oo — `cli --help` exits 0 and lists 12 verbs.
-//   2. probe_version.oo — `cli --version` exits 0.
-//   3. probe_unknown.oo — `cli unknown-verb` exits 2.
-//   4. probe_build.oo — native omits --backend; residual wasm/x86/aarch64/c exit 2.
-//   5. suite.oo — runs those probes twice via sys_exec of dist/cli.
-//   10. probe_edge.oo — no-args/missing-file/unknown-flag exits; pre-pass wins; help alias parity.
-//   11. probe_compiler_token.oo — build/find_compiler.oo requires OODA_COMPILER; no bin/oodac or ooda/oodac_bin fallback.
-//   6. probe_line_cap.oo — every .oo file in cli/ is <= 256 lines. (later)
-//   7. probe_file_law.oo — no forbidden file types in cli/. (later)
-//   8. probe_academy.oo — every .oo file in cli/ has the 4-element Academy header. (later)
-//   9. probe_router_parity.oo — `cli <sub>` matches `ooda <sub>` (router back-compat). (later)
+//   1. Re-export command probes cluster.
+//   2. Re-export build probes cluster.
+import "cmd/anchor.oo";
+import "build/anchor.oo";

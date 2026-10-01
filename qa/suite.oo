@@ -9,13 +9,13 @@
 //   2. Run every probe twice; report all failures, exit 0 only if none.
 
 import "std/fs/process/env.oo";
-import "probe_help.oo";
-import "probe_version.oo";
-import "probe_unknown.oo";
-import "probe_build.oo";
-import "probe_edge.oo";
-import "probe_compiler_token.oo";
-import "probe_dispatch.oo";
+import "cmd/probe_help.oo";
+import "cmd/probe_version.oo";
+import "cmd/probe_unknown.oo";
+import "build/probe_build.oo";
+import "build/probe_edge.oo";
+import "build/probe_compiler_token.oo";
+import "cmd/probe_dispatch.oo";
 
 fn sibling_cli(oodac: String) -> String {
     let n: Int = chars_len(oodac);

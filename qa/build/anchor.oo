@@ -1,0 +1,11 @@
+// # CLI QA Build Probes Anchor
+//
+// Logline: Execution and build probes for build, edge, and compiler token.
+//
+// Setup: Pure shim re-exporting build probe modules.
+//
+// Beats:
+//   1. Re-export build probes.
+import "probe_build.oo";
+import "probe_edge.oo";
+import "probe_compiler_token.oo";

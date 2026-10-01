@@ -20,7 +20,7 @@ fn expect_residual(p: &ProcessCap, bin: String, flag: String, val: String) -> Re
     argv = list_push(argv, "build");
     argv = list_push(argv, flag);
     argv = list_push(argv, val);
-    argv = list_push(argv, "qa/probe_help.oo");
+    argv = list_push(argv, "qa/cmd/probe_help.oo");
     let r: Result[Int, String] = sys_exec_wait(p, bin, argv);
     let code: Int = probe_build_wait_status(r);
     if code != 2 {
