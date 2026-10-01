@@ -122,7 +122,7 @@ jobs:
           export OODA_NO_JAIL=1
           mkdir -p .ooda-cache/ooda-tmp
           "$OODA_COMPILER" check main.oo
-          "$OODA_COMPILER" check qa/probe_compiler_token.oo
+          "$OODA_COMPILER" check qa/build/probe_compiler_token.oo
           echo "PASS: oodac check"
 
       - name: find_compiler no-fallback (anchor OODA_COMPILER-only)
