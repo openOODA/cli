@@ -7,7 +7,6 @@
 // Beats:
 //   1. hello / install / fix examples belong here as sibling files.
 //   2. Do not import missing placeholders.
-
 // Sibling example documents (.oot files):
 // - hello.oot
 // - fix_demo.oot
